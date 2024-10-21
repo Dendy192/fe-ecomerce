@@ -1,2 +1,2 @@
 # fe-ecomerce
-react fe ecomerce
+react js fe ecomerce
