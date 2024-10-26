@@ -5,7 +5,7 @@ const NewslatterBox = () => {
     event.preventDefault();
   };
   return (
-    <div className="text-center">
+    <div className="text-center px-4 sm:px-[5vw] md:px-[7vw] lg:px-[9vw]">
       <p className="text-2xl font-medium text-gray-800">
         Subscribe now & get 20% off
       </p>

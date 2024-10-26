@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Route, Routes } from "react-router-dom";
 import Home from "./pages/Home";
 import Collection from "./pages/Collection";
@@ -11,11 +11,39 @@ import PlaceOrder from "./pages/PlaceOrder";
 import Orders from "./pages/Orders";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import SearchBar from "./components/SearchBar";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import AnnounchmentBar from "./components/AnnounchmentBar";
 
 const App = () => {
+  const [isVisible, setIsVisible] = useState(true);
+  const [isNavbarFixed, setIsNavbarFixed] = useState(false);
+
+  const handleScroll = () => {
+    const scrollY = window.scrollY;
+
+    // Hide AnnouncementBar and fix Navbar based on scroll position
+    if (scrollY > 50) {
+      setIsVisible(false);
+      setIsNavbarFixed(true);
+    } else {
+      setIsVisible(true);
+      setIsNavbarFixed(false);
+    }
+  };
+
+  useEffect(() => {
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
-    <div className="px-4 sm:px-[5vw] md:px-[7vw] lg:px-[9vw]">
-      <Navbar />
+    <div className="px-0  pt-0">
+      <ToastContainer />
+      <AnnounchmentBar isVisible={isVisible} />
+      <Navbar isFixed={isNavbarFixed} />
+      <SearchBar />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/collection" element={<Collection />} />
