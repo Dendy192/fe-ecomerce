@@ -10,7 +10,7 @@ import { Navigation, Autoplay } from "swiper/modules";
 const Hero = () => {
   const imageUrls = [assets.hero_img, assets.hero_img1];
   return (
-    <div className="flex flex-col sm:flex-row border border-gray-400 w-screen h-screen">
+    <div className="flex flex-col sm:flex-row border border-gray-400 ">
       {/* hero left side
       <div className="w-full sm:w-1/2 flex items-center justify-center py-10 sm:py-0">
         <div className="text-[#414141]">
@@ -35,17 +35,17 @@ const Hero = () => {
         spaceBetween={0}
         navigation
         loop
-        autoplay={{ delay: 3000, disableOnInteraction: false }} // Enable autoplay
+        autoplay={{ delay: 5000, disableOnInteraction: false }} // Enable autoplay
         modules={[Navigation, Autoplay]}
-        className="w-full h-[500px]r"
+        className="w-full "
       >
         {imageUrls.map((url, index) => (
           <SwiperSlide key={index}>
-            {console.log(url)};
+            {console.log(url)}
             <img
               src={url}
               alt={`Banner ${index + 1}`}
-              className="w-full h-full object-cover"
+              className="w-full sm:w-1/2"
             />
           </SwiperSlide>
         ))}

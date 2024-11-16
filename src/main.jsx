@@ -4,11 +4,14 @@ import App from "./App.jsx";
 import "./index.css";
 import { BrowserRouter } from "react-router-dom";
 import ShopContextProvider from "./context/ShopContext.jsx";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 
 createRoot(document.getElementById("root")).render(
-  <BrowserRouter>
-    <ShopContextProvider>
-      <App />
-    </ShopContextProvider>
-  </BrowserRouter>
+  <GoogleOAuthProvider clientId="496860517548-g11ohdqt2ovm1m8k5q8j41ehak1ig951.apps.googleusercontent.com">
+    <BrowserRouter>
+      <ShopContextProvider>
+        <App />
+      </ShopContextProvider>
+    </BrowserRouter>
+  </GoogleOAuthProvider>
 );

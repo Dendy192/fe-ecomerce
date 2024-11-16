@@ -1,16 +1,32 @@
 import { createContext, useEffect, useState } from "react";
-import { products } from "../assets/assets";
+// import { products } from "../assets/assets";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
+import { backendUrl } from "../App";
+import axios from "axios";
 
 export const ShopContext = createContext();
 const ShopContextProvider = (props) => {
+  const url = backendUrl + "/v1/api/products";
   const currency = "Rp ";
   const delivery_fee = 10;
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [cartItems, setCartItems] = useState({});
+  const [products, setProducts] = useState([]);
   const navigate = useNavigate();
+
+  const getProduct = async () => {
+    // Initially load data from localStorage or fetch
+    // const cachedData = localStorage.getItem("productData");
+    // if (cachedData) {
+    //   setProducts(JSON.parse(cachedData));
+    // } else {
+    let response = await axios.get(url);
+    setProducts(response.data.data);
+    // localStorage.setItem("productData", JSON.stringify(response.data.data)); // Fetch if not cached
+    // }
+  };
 
   const addToCart = async (itemId, size) => {
     if (!size) {
@@ -80,6 +96,7 @@ const ShopContextProvider = (props) => {
     updateQuantity,
     getCartAmount,
     navigate,
+    getProduct,
   };
   return (
     <ShopContext.Provider value={value}>{props.children}</ShopContext.Provider>

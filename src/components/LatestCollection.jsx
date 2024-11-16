@@ -13,11 +13,24 @@ import { Navigation } from "swiper/modules";
 // import "swiper/swiper-bundle.css"; // Swiper styles
 
 const LatestCollection = () => {
-  const { products } = useContext(ShopContext);
+  const { products, getProduct } = useContext(ShopContext);
   const [latesProducts, setLatesProducts] = useState([]);
+
   useEffect(() => {
-    setLatesProducts(products.slice(0, 10));
-  }, []);
+    // Fetch products only if not already loaded
+    if (products.length === 0) {
+      getProduct();
+    }
+  }, [products, getProduct]); // Only trigger if `products` is empty
+
+  useEffect(() => {
+    // console.log(ShopContext);
+    const tmpProducts = structuredClone(products);
+    const sortedResponse = tmpProducts.sort(
+      (a, b) => new Date(b.create_dt) - new Date(a.create_dt)
+    );
+    setLatesProducts(sortedResponse.slice(0, 10));
+  }, [products]);
 
   return (
     <div className="my-10 px-4 sm:px-[5vw] md:px-[7vw] lg:px-[9vw]">
@@ -57,8 +70,8 @@ const LatestCollection = () => {
         {latesProducts.map((item, index) => (
           <SwiperSlide key={index}>
             <ProductItems
-              id={item._id}
-              image={item.image}
+              id={item.id}
+              image={item.img}
               name={item.name}
               price={item.price}
             />

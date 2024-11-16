@@ -2,15 +2,30 @@ import React, { useContext, useEffect, useState } from "react";
 import { ShopContext } from "../context/ShopContext";
 import Title from "./Title";
 import ProductItems from "./ProductItems";
+import Loading from "./Loading";
 
 const BestSeller = () => {
-  const { products } = useContext(ShopContext);
+  const { products, getProduct } = useContext(ShopContext);
   const [bestSeller, setBestSeller] = useState([]);
 
   useEffect(() => {
-    const bestProduct = products.filter((item) => item.bestseller);
+    // Fetch products only if not already loaded
+    if (products.length === 0) {
+      getProduct();
+    }
+  }, [products, getProduct]); // Only trigger if `products` is empty
+
+  useEffect(() => {
+    const tmpProducts = structuredClone(products);
+    const sortedResponse = tmpProducts.sort(
+      (a, b) => new Date(b.create_dt) - new Date(a.create_dt)
+    );
+
+    const bestProduct = sortedResponse.filter((item) => item.best);
+
     setBestSeller(bestProduct.slice(0, 5));
-  }, []);
+  }, [products]);
+
   return (
     <div className="my-10 px-4 sm:px-[5vw] md:px-[7vw] lg:px-[9vw]">
       <div className="text-center text-3xl py-8">
@@ -26,9 +41,9 @@ const BestSeller = () => {
         {bestSeller.map((item, index) => (
           <ProductItems
             key={index}
-            id={item._id}
+            id={item.id}
             name={item.name}
-            image={item.image}
+            image={item.img}
             price={item.price}
           />
         ))}

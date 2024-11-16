@@ -16,10 +16,17 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import AnnounchmentBar from "./components/AnnounchmentBar";
 
+export const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const App = () => {
   const [isVisible, setIsVisible] = useState(true);
   const [isNavbarFixed, setIsNavbarFixed] = useState(false);
 
+  // const responseMessage = (response) => {
+  //   console.log(response);
+  // };
+  // const errorMessage = (error) => {
+  //   console.log(error);
+  // };
   const handleScroll = () => {
     const scrollY = window.scrollY;
 
@@ -39,9 +46,10 @@ const App = () => {
   }, []);
 
   return (
-    <div className="px-0  pt-0">
+    <div className="px-0 pt-0">
+      {/* <GoogleLogin onSuccess={responseMessage} onError={errorMessage} /> */}
       <ToastContainer />
-      <AnnounchmentBar isVisible={isVisible} />
+      {/* <AnnounchmentBar isVisible={isVisible} /> */}
       <Navbar isFixed={isNavbarFixed} />
       <SearchBar />
       <Routes>

@@ -3,32 +3,39 @@ import { ShopContext } from "../context/ShopContext";
 import { assets } from "../assets/assets";
 import Title from "../components/Title";
 import ProductItems from "../components/ProductItems";
+import Loading from "../components/Loading";
 
 const Collection = () => {
-  const { products, search, showSearch } = useContext(ShopContext);
+  const { products, search, showSearch, getProduct } = useContext(ShopContext);
   const [showFilter, setShowFilter] = useState(false);
   const [filterProducts, setFilterProducts] = useState([]);
   const [category, setCategory] = useState([]);
   const [subCategory, setSubCategory] = useState([]);
   const [sortType, setSortType] = useState("relavent");
+  const [loading, setLoading] = useState(true);
 
   const toggleCategory = (e) => {
+    setLoading(true);
     if (category.includes(e.target.value)) {
       setCategory((prev) => prev.filter((item) => item !== e.target.value));
     } else {
       setCategory((prev) => [...prev, e.target.value]);
     }
+    setLoading(false);
   };
 
   const toggleSubCategory = (e) => {
+    setLoading(true);
     if (subCategory.includes(e.target.value)) {
       setSubCategory((prev) => prev.filter((item) => item !== e.target.value));
     } else {
       setSubCategory((prev) => [...prev, e.target.value]);
     }
+    setLoading(false);
   };
 
   const applyFilter = () => {
+    setLoading(true);
     let productsCopy = products.slice();
 
     if (showSearch && search) {
@@ -50,6 +57,7 @@ const Collection = () => {
   };
 
   const sortProduct = () => {
+    setLoading(true);
     let fpCopy = filterProducts.slice();
     switch (sortType) {
       case "low-high":
@@ -65,14 +73,25 @@ const Collection = () => {
         break;
     }
   };
+  useEffect(() => {
+    // Fetch products only if not already loaded
+    if (products.length === 0) {
+      getProduct();
+    }
+    console.log(products);
+    setLoading(false);
+  }, [products, getProduct]); // Only trigger if `products` is empty
 
   useEffect(() => {
     applyFilter();
-  }, [category, subCategory, search, showSearch]);
+    setLoading(false);
+  }, [category, subCategory, search, showSearch, products]);
 
   useEffect(() => {
     sortProduct();
+    setLoading(false);
   }, [sortType]);
+  if (loading) return <Loading />;
   return (
     <div className="flex flex-col sm:flex-row gap-1 sm:gap-10 pt-10 border-t px-4 sm:px-[5vw] md:px-[7vw] lg:px-[9vw]">
       {/* filter options */}
@@ -183,9 +202,9 @@ const Collection = () => {
             <ProductItems
               key={index}
               name={item.name}
-              id={item._id}
+              id={item.id}
               price={item.price}
-              image={item.image}
+              image={item.img}
             />
           ))}
         </div>
