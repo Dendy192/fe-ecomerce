@@ -17,15 +17,8 @@ const ShopContextProvider = (props) => {
   const navigate = useNavigate();
 
   const getProduct = async () => {
-    // Initially load data from localStorage or fetch
-    // const cachedData = localStorage.getItem("productData");
-    // if (cachedData) {
-    //   setProducts(JSON.parse(cachedData));
-    // } else {
     let response = await axios.get(url);
     setProducts(response.data.data);
-    // localStorage.setItem("productData", JSON.stringify(response.data.data)); // Fetch if not cached
-    // }
   };
 
   const addToCart = async (itemId, size) => {

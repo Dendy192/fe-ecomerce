@@ -4,33 +4,51 @@ import { assets } from "../assets/assets";
 import Title from "../components/Title";
 import ProductItems from "../components/ProductItems";
 import Loading from "../components/Loading";
+import axios from "axios";
+import { backendUrl } from "../App";
 
 const Collection = () => {
+  const url = backendUrl + "/v1/api/products";
   const { products, search, showSearch, getProduct } = useContext(ShopContext);
   const [showFilter, setShowFilter] = useState(false);
   const [filterProducts, setFilterProducts] = useState([]);
   const [category, setCategory] = useState([]);
   const [subCategory, setSubCategory] = useState([]);
+  const [categoryData, setCategoryData] = useState([]);
+  const [subCategoryData, setSubCategoryData] = useState([]);
   const [sortType, setSortType] = useState("relavent");
   const [loading, setLoading] = useState(true);
 
+  // const toggleCategory = (e) => {
+
+  //   if (category.includes(e.target.value)) {
+  //     setCategory((prev) => prev.filter((item) => item !== e.target.value));
+  //   } else {
+  //     setCategory((prev) => [...prev, e.target.value]);
+  //   }
+
+  // };
   const toggleCategory = (e) => {
     setLoading(true);
-    if (category.includes(e.target.value)) {
-      setCategory((prev) => prev.filter((item) => item !== e.target.value));
-    } else {
-      setCategory((prev) => [...prev, e.target.value]);
-    }
+    const selectedCategory = e.target.value;
+
+    setCategory((prev) =>
+      prev.includes(selectedCategory)
+        ? prev.filter((item) => item !== selectedCategory)
+        : [...prev, selectedCategory]
+    );
     setLoading(false);
   };
 
   const toggleSubCategory = (e) => {
     setLoading(true);
-    if (subCategory.includes(e.target.value)) {
-      setSubCategory((prev) => prev.filter((item) => item !== e.target.value));
-    } else {
-      setSubCategory((prev) => [...prev, e.target.value]);
-    }
+    const selectedSubCategory = e.target.value;
+
+    setSubCategory((prev) =>
+      prev.includes(selectedSubCategory)
+        ? prev.filter((item) => item !== selectedSubCategory)
+        : [...prev, selectedSubCategory]
+    );
     setLoading(false);
   };
 
@@ -45,14 +63,15 @@ const Collection = () => {
     }
     if (category.length > 0) {
       productsCopy = productsCopy.filter((item) =>
-        category.includes(item.category)
+        item.category.some((cat) => category.includes(cat.name))
       );
     }
     if (subCategory.length > 0) {
       productsCopy = productsCopy.filter((item) =>
-        subCategory.includes(item.subCategory)
+        item.subCategory.some((sub) => subCategory.includes(sub.name))
       );
     }
+
     setFilterProducts(productsCopy);
   };
 
@@ -73,19 +92,24 @@ const Collection = () => {
         break;
     }
   };
+
+  const getFilter = async () => {
+    let response = await axios.get(url + "/filter");
+    setCategoryData(response.data.data.categories);
+    setSubCategoryData(response.data.data.subCategories);
+  };
   useEffect(() => {
-    // Fetch products only if not already loaded
     if (products.length === 0) {
       getProduct();
     }
-    console.log(products);
-    setLoading(false);
-  }, [products, getProduct]); // Only trigger if `products` is empty
+    getFilter();
+    setFilterProducts(products);
+  }, [products, getProduct]);
 
   useEffect(() => {
     applyFilter();
     setLoading(false);
-  }, [category, subCategory, search, showSearch, products]);
+  }, [category, subCategory, search, showSearch]);
 
   useEffect(() => {
     sortProduct();
@@ -115,33 +139,17 @@ const Collection = () => {
         >
           <p className="mb-3 text-sm font-medium ">CATEGORIES</p>
           <div className="flex flex-col gap-2 text-sm font-light text-gray-700">
-            <p className="flex gap-2">
-              <input
-                className="w-3"
-                type="checkbox"
-                value={"Men"}
-                onChange={toggleCategory}
-              />
-              Men
-            </p>
-            <p className="flex gap-2">
-              <input
-                className="w-3"
-                type="checkbox"
-                value={"Women"}
-                onChange={toggleCategory}
-              />
-              Women
-            </p>
-            <p className="flex gap-2">
-              <input
-                className="w-3"
-                type="checkbox"
-                value={"Kids"}
-                onChange={toggleCategory}
-              />
-              Kids
-            </p>
+            {categoryData.map((cat, index) => (
+              <p className="flex gap-2" key={index}>
+                <input
+                  className="w-3"
+                  type="checkbox"
+                  value={cat.name}
+                  onChange={toggleCategory}
+                />
+                {cat.name}
+              </p>
+            ))}
           </div>
         </div>
         {/* subCategory */}
@@ -152,33 +160,17 @@ const Collection = () => {
         >
           <p className="mb-3 text-sm font-medium ">TYPE</p>
           <div className="flex flex-col gap-2 text-sm font-light text-gray-700">
-            <p className="flex gap-2">
-              <input
-                className="w-3"
-                type="checkbox"
-                value={"Topwear"}
-                onChange={toggleSubCategory}
-              />
-              Topwear
-            </p>
-            <p className="flex gap-2">
-              <input
-                className="w-3"
-                type="checkbox"
-                value={"Bottomwear"}
-                onChange={toggleSubCategory}
-              />
-              Bottomwear
-            </p>
-            <p className="flex gap-2">
-              <input
-                className="w-3"
-                type="checkbox"
-                value={"Winterwear"}
-                onChange={toggleSubCategory}
-              />
-              Winterwear
-            </p>
+            {subCategoryData.map((sub, index) => (
+              <p className="flex gap-2" key={index}>
+                <input
+                  className="w-3"
+                  type="checkbox"
+                  value={sub.name}
+                  onChange={toggleSubCategory}
+                />
+                {sub.name}
+              </p>
+            ))}
           </div>
         </div>
       </div>

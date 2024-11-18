@@ -7,8 +7,6 @@ import PriceFormatter from "./PriceFormatter";
 const ProductItems = ({ id, image, name, price }) => {
   const { currency } = useContext(ShopContext);
 
-  console.log(encodeURI(image[0]));
-
   return (
     <Link className="text-grey-700 cursor-pointer" to={`/product/${id}`}>
       <div className="overflow-hidden">
