@@ -15,12 +15,19 @@ import SearchBar from "./components/SearchBar";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import AnnounchmentBar from "./components/AnnounchmentBar";
+import Otp from "./pages/Otp";
 
 export const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const App = () => {
   const [isVisible, setIsVisible] = useState(true);
   const [isNavbarFixed, setIsNavbarFixed] = useState(false);
 
+  const [token, setToken] = useState(
+    localStorage.getItem("token") === null ? "" : localStorage.getItem("token")
+  );
+  useEffect(() => {
+    localStorage.setItem("token", token);
+  }, [token]);
   // const responseMessage = (response) => {
   //   console.log(response);
   // };
@@ -50,18 +57,19 @@ const App = () => {
       {/* <GoogleLogin onSuccess={responseMessage} onError={errorMessage} /> */}
       <ToastContainer />
       {/* <AnnounchmentBar isVisible={isVisible} /> */}
-      <Navbar isFixed={isNavbarFixed} />
+      <Navbar isFixed={isNavbarFixed} token={token} setToken={setToken} />
       <SearchBar />
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/verification" element={<Otp setToken={setToken} />} />
         <Route path="/collection" element={<Collection />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
-        <Route path="/product/:productId" element={<Product />} />
-        <Route path="/cart" element={<Cart />} />
+        <Route path="/product/:productId" element={<Product token={token} />} />
+        <Route path="/cart" element={<Cart token={token} />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/place-order" element={<PlaceOrder />} />
-        <Route path="/orders" element={<Orders />} />
+        <Route path="/place-order" element={<PlaceOrder token={token} />} />
+        <Route path="/orders" element={<Orders token={token} />} />
       </Routes>
       <Footer />
     </div>

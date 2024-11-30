@@ -1,11 +1,27 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { assets } from "../assets/assets";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { ShopContext } from "../context/ShopContext";
+import Loading from "./Loading";
 
-const Navbar = ({ isFixed }) => {
+const Navbar = ({ isFixed, token, setToken }) => {
   const [visible, setVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
   const { setShowSearch, getCartCount } = useContext(ShopContext);
+  const logout = () => {
+    setLoading(true); // Start loading
+    setTimeout(() => {
+      // Simulate an async process like calling an API (if required)
+      localStorage.removeItem("token"); // Remove token from local storage
+      setToken(""); // Clear the token state
+      setLoading(false); // Stop loading
+      window.location.reload(); // Refresh the page
+      navigate("/");
+    }, 1000); // Optional delay for better UX or simulate API response time
+  };
+  useEffect(() => {}, [token]);
+  if (loading) return <Loading />;
   return (
     <div
       className={`flex items-center justify-between py-5 font-medium ${
@@ -47,19 +63,29 @@ const Navbar = ({ isFixed }) => {
           alt=""
         />
         <div className="group relative">
-          <Link to={"/login"}>
-            <img
-              src={assets.profile_icon}
-              className="w-5 cursor-pointer"
-              alt=""
-            />
-          </Link>
+          <img
+            src={assets.profile_icon}
+            className="w-5 cursor-pointer"
+            alt=""
+          />
+
           <div className="group-hover:block hidden absolute dropdown-menu right-0 pt-4">
-            <div className="flex flex-col gap-2 w-36 py-3 px-5 bg-slate-100 text-gray-500 rounded">
-              <p className="cursor-pointer hover:text-black">My Profile</p>
-              <p className="cursor-pointer hover:text-black">Order</p>
-              <p className="cursor-pointer hover:text-black">Login</p>
-            </div>
+            {token ? (
+              <div className="flex flex-col gap-2 w-36 py-3 px-5 bg-slate-100 text-gray-500 rounded">
+                <p className="cursor-pointer hover:text-black">My Profile</p>
+                <p className="cursor-pointer hover:text-black">Order</p>
+
+                <p className="cursor-pointer hover:text-black" onClick={logout}>
+                  Log Out
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2 w-36 py-3 px-5 bg-slate-100 text-gray-500 rounded">
+                <Link to={"/login"}>
+                  <p className="cursor-pointer hover:text-black">Login</p>
+                </Link>
+              </div>
+            )}
           </div>
         </div>
         <Link to="/cart" className="relative">

@@ -21,7 +21,11 @@ const ShopContextProvider = (props) => {
     setProducts(response.data.data);
   };
 
-  const addToCart = async (itemId, size) => {
+  const addToCart = async (itemId, variantsName, size) => {
+    if (!variantsName) {
+      toast.error("Select Product Variant");
+      return;
+    }
     if (!size) {
       toast.error("Select Product Size");
       return;

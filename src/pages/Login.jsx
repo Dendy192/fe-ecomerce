@@ -1,13 +1,91 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import Button from "../components/Button";
 import { assets } from "../assets/assets";
 import { useGoogleLogin } from "@react-oauth/google";
 import axios from "axios";
+import FloatingLabelInput from "../components/FloatingLabelInput";
+import { useNavigate } from "react-router-dom";
+import { UserContext } from "../context/UserContext";
+import { backendUrl } from "../App";
+import { toast } from "react-toastify";
 
 const Login = () => {
-  const [currentState, setCurrentState] = useState("Sign Up");
+  const url = backendUrl + "/v1/api/generate";
+  const { updateFormData } = useContext(UserContext);
+  const navigate = useNavigate();
+  const [currentState, setCurrentState] = useState("");
+
+  const [activeTab, setActiveTab] = useState(
+    sessionStorage.getItem("activeTab")
+  );
+  const setSessions = () => {
+    sessionStorage.setItem("activeTab", currentState);
+  };
+  const [errors, setErrors] = useState({ name: "", email: "", password: "" });
+
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validatePassword = (password) => {
+    // Minimum 8 characters, at least 1 uppercase, 1 number, and 1 special character
+    const passwordRegex =
+      /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    return passwordRegex.test(password);
+  };
   const onSubmitHandler = async (event) => {
     event.preventDefault();
+    if (currentState === "Login") {
+      const emailError = !validateEmail(email)
+        ? "Please enter a valid email address"
+        : "";
+      const passwordError =
+        password === "" || password === null ? "Password must be filled" : "";
+      if (!emailError && !passwordError) {
+      } else {
+        setErrors({ email: emailError, password: passwordError });
+      }
+    } else {
+      const emailError = !validateEmail(email)
+        ? "Please enter a valid email address"
+        : "";
+      const passwordError = !validatePassword(password)
+        ? "Password must be at least 8 characters long, include an uppercase letter, a number, and a special character"
+        : "";
+
+      const nameError =
+        name === "" || name === null ? "Name must be filled" : "";
+
+      if (!emailError && !passwordError && !nameError) {
+        // check email first in already register or no
+        let body = {
+          email: email,
+        };
+        try {
+          let response = await axios.post(url, body);
+          if (response.data.success) {
+            updateFormData({ email, password, name });
+            navigate("/verification");
+          } else {
+            console.log("di sini: ", response.data.data);
+            toast.warn(response.data.data);
+          }
+        } catch (error) {
+          toast.error(error);
+        }
+      } else {
+        setErrors({
+          name: nameError,
+          email: emailError,
+          password: passwordError,
+        });
+      }
+    }
   };
   const [user, setUser] = useState([]);
   const [profile, setProfile] = useState([]);
@@ -20,6 +98,25 @@ const Login = () => {
     googleLogout();
     setProfile(null);
   };
+
+  useEffect(() => {
+    if (activeTab === "Sign Up") {
+      setActiveTab("Sign Up");
+      setCurrentState("Sign Up");
+    } else {
+      setActiveTab("Login");
+      setCurrentState("Login");
+    }
+  }, []);
+  useEffect(() => {
+    setSessions();
+    setErrors({ name: "", email: "", password: "" });
+  }, [currentState, activeTab]);
+
+  useEffect(() => {}, [name, password, email]);
+
+  useEffect(() => {}, [errors]);
+
   useEffect(() => {
     if (user) {
       axios
@@ -43,34 +140,41 @@ const Login = () => {
   return (
     <form
       onSubmit={onSubmitHandler}
-      className="flex flex-col items-center w-[90%] sm:max-w-96 m-auto mt-14 gap-4 text-gray-800 mb-14 "
+      className=" flex flex-col w-[90%] sm:max-w-96 m-auto mt-14 gap-4 text-gray-800 mb-14 py-5"
     >
-      <div className="inline-flex items-center gap-2 mb-2 mt-10">
-        <p className="prata-regular text-3xl">{currentState}</p>
+      <div className="inline-flex justify-center items-center gap-2 mb-2 mt-10">
+        <p className="prata-regular  text-3xl">{currentState}</p>
         <hr className="border-none h-[1.5px] w-8 bg-gray-800" />
       </div>
       {currentState === "Login" ? (
         ""
       ) : (
-        <input
-          type="text"
-          className="w-full px-3 py-2 border border-gray-800"
-          placeholder="Name"
-          required
+        <FloatingLabelInput
+          type={"text"}
+          value={name}
+          id={"name"}
+          label={"Name"}
+          onChange={(e) => setName(e.target.value)}
+          error={errors.name}
         />
       )}
-      <input
-        type="email"
-        className="w-full px-3 py-2 border border-gray-800"
-        placeholder="Email"
-        required
+      <FloatingLabelInput
+        type={"email"}
+        value={email}
+        id={"email"}
+        label={"Email"}
+        onChange={(e) => setEmail(e.target.value)}
+        error={errors.email}
       />
-      <input
-        type="password"
-        className="w-full px-3 py-2 border border-gray-800"
-        placeholder="Password"
-        required
+      <FloatingLabelInput
+        type={"password"}
+        value={password}
+        id={"password"}
+        label={"Password"}
+        onChange={(e) => setPassword(e.target.value)}
+        error={errors.password}
       />
+
       {currentState === "Login" ? (
         <div className="w-full flex justify-between text-sm mt-[-8px]">
           <p className="cursor-pointer">Forgot your password?</p>
@@ -79,8 +183,14 @@ const Login = () => {
         ""
       )}
 
-      <Button className="py-2" size="lg" variant="dark" outline={true}>
-        {currentState === "Login" ? "Sign in" : "Sign Up"}
+      <Button
+        className="py-2"
+        size="lg"
+        variant="dark"
+        outline={true}
+        type="submit"
+      >
+        {currentState === "Login" ? "Login" : "Sign Up"}
       </Button>
       {currentState === "Login" ? (
         <div>
