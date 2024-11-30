@@ -55,7 +55,19 @@ const App = () => {
   return (
     <div className="px-0 pt-0">
       {/* <GoogleLogin onSuccess={responseMessage} onError={errorMessage} /> */}
-      <ToastContainer />
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss={false}
+        draggable
+        pauseOnHover={false}
+        theme="light"
+        transition:Bounce
+      />
       {/* <AnnounchmentBar isVisible={isVisible} /> */}
       <Navbar isFixed={isNavbarFixed} token={token} setToken={setToken} />
       <SearchBar />
@@ -67,7 +79,7 @@ const App = () => {
         <Route path="/contact" element={<Contact />} />
         <Route path="/product/:productId" element={<Product token={token} />} />
         <Route path="/cart" element={<Cart token={token} />} />
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<Login setToken={setToken} />} />
         <Route path="/place-order" element={<PlaceOrder token={token} />} />
         <Route path="/orders" element={<Orders token={token} />} />
       </Routes>

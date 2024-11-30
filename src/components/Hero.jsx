@@ -41,7 +41,6 @@ const Hero = () => {
       >
         {imageUrls.map((url, index) => (
           <SwiperSlide key={index}>
-            {console.log(url)}
             <img
               src={url}
               alt={`Banner ${index + 1}`}

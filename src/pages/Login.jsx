@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import Button from "../components/Button";
 import { assets } from "../assets/assets";
 import { useGoogleLogin } from "@react-oauth/google";
@@ -8,12 +8,22 @@ import { useNavigate } from "react-router-dom";
 import { UserContext } from "../context/UserContext";
 import { backendUrl } from "../App";
 import { toast } from "react-toastify";
+import ReCAPTCHA from "react-google-recaptcha";
 
-const Login = () => {
-  const url = backendUrl + "/v1/api/generate";
+const Login = ({ setToken }) => {
+  const site_key = import.meta.env.VITE_CAPTCHA_SITE_KEY;
+  const url = backendUrl + "/v1/api";
   const { updateFormData } = useContext(UserContext);
   const navigate = useNavigate();
   const [currentState, setCurrentState] = useState("");
+  const toastId = useRef(null);
+  const toastIdError = useRef(null);
+
+  const [captchaToken, setCaptchaToken] = useState("");
+
+  const handleCaptchaChange = (token) => {
+    setCaptchaToken(token); // Store the token for verification
+  };
 
   const [activeTab, setActiveTab] = useState(
     sessionStorage.getItem("activeTab")
@@ -38,17 +48,53 @@ const Login = () => {
       /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     return passwordRegex.test(password);
   };
+
   const onSubmitHandler = async (event) => {
     event.preventDefault();
     if (currentState === "Login") {
-      const emailError = !validateEmail(email)
-        ? "Please enter a valid email address"
-        : "";
-      const passwordError =
-        password === "" || password === null ? "Password must be filled" : "";
-      if (!emailError && !passwordError) {
+      if (!captchaToken) {
+        if (!toast.isActive(toastIdError.current)) {
+          toastIdError.current = toast.error("Please complete the CAPTCHA");
+        }
       } else {
-        setErrors({ email: emailError, password: passwordError });
+        let responseCaptcha = await axios.post(url + "/verification-captcha", {
+          token: captchaToken,
+        });
+        if (responseCaptcha.data.success) {
+          const emailError = !validateEmail(email)
+            ? "Please enter a valid email address"
+            : "";
+          const passwordError =
+            password === "" || password === null
+              ? "Password must be filled"
+              : "";
+          if (!emailError && !passwordError) {
+            let loginBody = {
+              email: email,
+              password: password,
+            };
+            let loginResponse = await axios.post(url + "/login", loginBody);
+            if (loginResponse.data.success) {
+              let token = loginResponse.data.data.token;
+              setToken(token);
+              navigate("/");
+            } else {
+              if (!toast.isActive(toastIdError.current)) {
+                toastIdError.current = toast.error(
+                  "Email / password incorrect. Please Try Again"
+                );
+              }
+            }
+          } else {
+            setErrors({ email: emailError, password: passwordError });
+          }
+        } else {
+          if (!toast.isActive(toastIdError.current)) {
+            toastIdError.current = toast.error(
+              "CAPTCHA verification failed. Please Try Again"
+            );
+          }
+        }
       }
     } else {
       const emailError = !validateEmail(email)
@@ -67,16 +113,20 @@ const Login = () => {
           email: email,
         };
         try {
-          let response = await axios.post(url, body);
+          let response = await axios.post(url + "/generate", body);
           if (response.data.success) {
             updateFormData({ email, password, name });
             navigate("/verification");
           } else {
             console.log("di sini: ", response.data.data);
-            toast.warn(response.data.data);
+            if (!toast.isActive(toastId.current)) {
+              toastId.current = toast.warn(response.data.data);
+            }
           }
         } catch (error) {
-          toast.error(error);
+          if (!toast.isActive(toastIdError.current)) {
+            toastIdError.current = toast.error(error);
+          }
         }
       } else {
         setErrors({
@@ -182,7 +232,12 @@ const Login = () => {
       ) : (
         ""
       )}
-
+      <div className="flex justify-center items-center">
+        <ReCAPTCHA
+          sitekey={site_key} // Replace with your Google reCAPTCHA site key
+          onChange={handleCaptchaChange}
+        />
+      </div>
       <Button
         className="py-2"
         size="lg"
@@ -192,6 +247,7 @@ const Login = () => {
       >
         {currentState === "Login" ? "Login" : "Sign Up"}
       </Button>
+
       {currentState === "Login" ? (
         <div>
           <p className="my-4">
