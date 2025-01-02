@@ -4,6 +4,9 @@
 @tailwind components;
 @tailwind utilities;
 
+#mandatory {
+  color: red;
+}
 a.active hr {
   display: block;
 }

@@ -9,6 +9,7 @@ const Button = ({
   type = "button",
   onClick,
   className,
+  props,
 }) => {
   // Define base styles
   const baseStyles = `inline-block font-medium rounded focus:outline-none transition ease-in-out duration-200`;
@@ -59,6 +60,7 @@ const Button = ({
       className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${className} `}
       onClick={onClick}
       type={type}
+      {...props}
     >
       {children}
     </button>

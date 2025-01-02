@@ -48,15 +48,15 @@ const Login = ({ setToken }) => {
       /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     return passwordRegex.test(password);
   };
-
+  const resetPassword = async () => {};
   const onSubmitHandler = async (event) => {
     event.preventDefault();
-    if (currentState === "Login") {
-      if (!captchaToken) {
-        if (!toast.isActive(toastIdError.current)) {
-          toastIdError.current = toast.error("Please complete the CAPTCHA");
-        }
-      } else {
+    if (!captchaToken) {
+      if (!toast.isActive(toastIdError.current)) {
+        toastIdError.current = toast.error("Please complete the CAPTCHA");
+      }
+    } else {
+      if (currentState === "Login") {
         let responseCaptcha = await axios.post(url + "/verification-captcha", {
           token: captchaToken,
         });
@@ -95,45 +95,46 @@ const Login = ({ setToken }) => {
             );
           }
         }
-      }
-    } else {
-      const emailError = !validateEmail(email)
-        ? "Please enter a valid email address"
-        : "";
-      const passwordError = !validatePassword(password)
-        ? "Password must be at least 8 characters long, include an uppercase letter, a number, and a special character"
-        : "";
+      } else {
+        const emailError = !validateEmail(email)
+          ? "Please enter a valid email address"
+          : "";
+        const passwordError = !validatePassword(password)
+          ? "Password must be at least 8 characters long, include an uppercase letter, a number, and a special character"
+          : "";
 
-      const nameError =
-        name === "" || name === null ? "Name must be filled" : "";
+        const nameError =
+          name === "" || name === null ? "Name must be filled" : "";
 
-      if (!emailError && !passwordError && !nameError) {
-        // check email first in already register or no
-        let body = {
-          email: email,
-        };
-        try {
-          let response = await axios.post(url + "/generate", body);
-          if (response.data.success) {
-            updateFormData({ email, password, name });
-            navigate("/verification");
-          } else {
-            console.log("di sini: ", response.data.data);
-            if (!toast.isActive(toastId.current)) {
-              toastId.current = toast.warn(response.data.data);
+        if (!emailError && !passwordError && !nameError) {
+          // check email first in already register or no
+          let body = {
+            email: email,
+            name: name,
+          };
+          try {
+            let response = await axios.post(url + "/generate", body);
+            if (response.data.success) {
+              updateFormData({ email, password, name });
+              navigate("/verification");
+            } else {
+              console.log("di sini: ", response.data.data);
+              if (!toast.isActive(toastId.current)) {
+                toastId.current = toast.warn(response.data.data);
+              }
+            }
+          } catch (error) {
+            if (!toast.isActive(toastIdError.current)) {
+              toastIdError.current = toast.error(error);
             }
           }
-        } catch (error) {
-          if (!toast.isActive(toastIdError.current)) {
-            toastIdError.current = toast.error(error);
-          }
+        } else {
+          setErrors({
+            name: nameError,
+            email: emailError,
+            password: passwordError,
+          });
         }
-      } else {
-        setErrors({
-          name: nameError,
-          email: emailError,
-          password: passwordError,
-        });
       }
     }
   };
@@ -227,7 +228,9 @@ const Login = ({ setToken }) => {
 
       {currentState === "Login" ? (
         <div className="w-full flex justify-between text-sm mt-[-8px]">
-          <p className="cursor-pointer">Forgot your password?</p>
+          <p className="cursor-pointer" onClick={resetPassword}>
+            Forgot your password?
+          </p>
         </div>
       ) : (
         ""

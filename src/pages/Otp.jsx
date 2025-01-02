@@ -29,7 +29,9 @@ const Otp = ({ setToken }) => {
 
     // Mask the local part: first 2 characters preserved, the rest replaced by 'x'
     const maskedLocalPart =
-      localPart.slice(0, 2) + "xx" + "x".repeat(localPart.length - 4);
+      localPart.slice(0, 2) +
+      "xx" +
+      "x".repeat(Math.max(localPart.length - 4, 0));
 
     // Mask the domain part: keep the first part of domain, replace the middle with 'x', and keep the last character
     const maskedDomainPart =
@@ -46,6 +48,7 @@ const Otp = ({ setToken }) => {
     try {
       let body = {
         email: email,
+        name: formData.name,
       };
       let response = await axios.post(url + "/v1/api/generate", body);
       if (response.data.success) toast.success("OTP Resend successfully");
@@ -92,6 +95,12 @@ const Otp = ({ setToken }) => {
   useEffect(() => {
     checkOtp();
   }, [otp]);
+
+  useEffect(() => {
+    if (!formData.email && !formData.name && !formData.password) {
+      navigate("/login");
+    }
+  }, [formData]);
   useEffect(() => {
     // Countdown logic
     let interval;

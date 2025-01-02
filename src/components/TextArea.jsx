@@ -1,18 +1,9 @@
-import React, { useState } from "react";
+import React from "react";
 
-const Input = ({
-  type = "text",
-  placeholder = "",
-  value = "",
-  error,
-  props,
-  onChange,
-  className = "",
-}) => {
+const TextArea = ({ placeholder = "", value = "", error, props, onChange }) => {
   return (
     <>
-      <input
-        type={type}
+      <textarea
         className={`w-full px-3 py-2 border ${
           error ? "border-red-600" : "border-gray-800"
         }`}
@@ -26,4 +17,4 @@ const Input = ({
   );
 };
 
-export default Input;
+export default TextArea;

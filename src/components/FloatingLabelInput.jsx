@@ -7,10 +7,11 @@ const FloatingLabelInput = ({
   error,
   props,
   onChange,
+  className = "",
 }) => {
   return (
     <>
-      <div className="relative ">
+      <div className={`relative ${className}`}>
         <input
           type={type}
           id={id}

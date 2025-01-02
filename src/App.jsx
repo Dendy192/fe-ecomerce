@@ -16,17 +16,53 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import AnnounchmentBar from "./components/AnnounchmentBar";
 import Otp from "./pages/Otp";
+import ResetPassword from "./pages/ResetPassword";
+import AccountPage from "./pages/AccountPage";
+import axios from "axios";
 
 export const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const App = () => {
   const [isVisible, setIsVisible] = useState(true);
   const [isNavbarFixed, setIsNavbarFixed] = useState(false);
 
-  const [token, setToken] = useState(
-    localStorage.getItem("token") === null ? "" : localStorage.getItem("token")
-  );
+  const fetchToken = async () => {
+    let result = null;
+    console.log(localStorage.getItem("token"));
+    if (localStorage.getItem("token") !== null) {
+      try {
+        let response = await axios.post(
+          backendUrl + "/v1/api/check-token",
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+        let data = response.data;
+        if (data.success) {
+          return localStorage.getItem("token");
+        }
+      } catch (error) {
+        // localStorage.removeItem("token");
+      }
+    }
+    return result;
+  };
+
+  const [token, setToken] = useState(null);
   useEffect(() => {
-    localStorage.setItem("token", token);
+    const getToken = async () => {
+      const fetchedToken = await fetchToken();
+      setToken(fetchedToken);
+    };
+
+    getToken();
+  }, []); // Empty dependency array to run once when the component mounts
+  useEffect(() => {
+    if (token) {
+      localStorage.setItem("token", token);
+    }
   }, [token]);
   // const responseMessage = (response) => {
   //   console.log(response);
@@ -82,6 +118,8 @@ const App = () => {
         <Route path="/login" element={<Login setToken={setToken} />} />
         <Route path="/place-order" element={<PlaceOrder token={token} />} />
         <Route path="/orders" element={<Orders token={token} />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/profile" element={<AccountPage />} />
       </Routes>
       <Footer />
     </div>
