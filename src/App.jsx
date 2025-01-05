@@ -27,12 +27,12 @@ const App = () => {
 
   const fetchToken = async () => {
     let result = null;
-    console.log(localStorage.getItem("token"));
+
     if (localStorage.getItem("token") !== null) {
       try {
-        let response = await axios.post(
+        let response = await axios.get(
           backendUrl + "/v1/api/check-token",
-          {},
+
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("token")}`,

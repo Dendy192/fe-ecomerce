@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Cards from "../components/Cards";
 import Button from "../components/Button";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -12,13 +12,57 @@ import TextArea from "../components/TextArea";
 
 import { backendUrl } from "../App";
 import axios from "axios";
-import Select from "../components/SelectCustom";
+
 import Mandatory from "../components/Mandatory";
 import Loading from "../components/Loading";
+import OtpCustom from "../components/OtpCustom";
+import SelectCustom from "../components/SelectCustom";
+import { Navigate, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 const AccountPage = () => {
-  const [activeTab, setActiveTab] = useState("account");
+  const [activeTab, setActiveTab] = useState(
+    sessionStorage.getItem("activeTab")
+  );
+  const [currentState, setCurrentState] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [customer, setCustomer] = useState(null);
+  // let url = backendUrl + "/v1/api/";
+  let url = backendUrl + "/v1/api/customer/profile";
+  const fetchCustomer = async () => {
+    try {
+      const response = await axios.get(url, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      setCustomer(response.data.data);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching customer:", error);
+    }
+  };
 
+  const setSessions = () => {
+    sessionStorage.setItem("activeTab", currentState);
+  };
+  useEffect(() => {
+    fetchCustomer();
+  }, []);
+  useEffect(() => {}, [customer]);
+  useEffect(() => {
+    if (activeTab === "address") {
+      setActiveTab("address");
+      setCurrentState("address");
+    } else {
+      setActiveTab("account");
+      setCurrentState("account");
+    }
+  }, []);
+  useEffect(() => {
+    setSessions();
+  }, [currentState, activeTab]);
+  if (loading) return <Loading />;
   return (
     <div className="min-h-screen">
       {/* Tabs */}
@@ -27,21 +71,21 @@ const AccountPage = () => {
           <div className="flex justify-center">
             <button
               className={`px-4 py-2 font-medium ${
-                activeTab === "account"
+                currentState === "account"
                   ? "text-black border-b-2 border-black"
                   : "text-gray-500"
               }`}
-              onClick={() => setActiveTab("account")}
+              onClick={() => setCurrentState("account")}
             >
               Account
             </button>
             <button
               className={`px-4 py-2 font-medium ${
-                activeTab === "address"
+                currentState === "address"
                   ? "text-black border-b-2 border-black"
                   : "text-gray-500"
               }`}
-              onClick={() => setActiveTab("address")}
+              onClick={() => setCurrentState("address")}
             >
               Address
             </button>
@@ -51,19 +95,31 @@ const AccountPage = () => {
 
       {/* Content */}
       <div className="p-4">
-        {activeTab === "address" && <AddressTab />}
-        {activeTab === "account" && <AccountTab />}
+        {currentState === "address" && <AddressTab customer={customer} />}
+        {currentState === "account" && (
+          <AccountTab customer={customer} setCustomer={setCustomer} />
+        )}
       </div>
     </div>
   );
 };
 
-const AddressTab = () => {
+const AddressTab = ({ customer }) => {
   let url = backendUrl + "/v1/api/";
+  const navigate = useNavigate();
+
   const [isModalOpen, setModalOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
   const openModal = () => setModalOpen(true);
-  const closeModal = () => setModalOpen(false);
-  const [modalHeader, setModalHeader] = useState("Add ");
+  const closeModal = () => {
+    setModalOpen(false);
+    resetModel();
+  };
+  const [modalHeader, setModalHeader] = useState("Add");
+  const [activity, setActivity] = useState(null);
+
+  const toastId = useRef(null);
+  const toastIdError = useRef(null);
 
   const [provinsi, setProvinsi] = useState(null);
   const [kota, setKota] = useState(null);
@@ -81,6 +137,19 @@ const AddressTab = () => {
   const [nomorHp, setNomorHp] = useState("");
   const [catatan, setCatatan] = useState("");
   const [defaultHome, setDefaultHome] = useState(false);
+
+  const [error, setError] = useState({
+    label: "",
+    penerima: "",
+    alamat: "",
+    nomor: "",
+    provinsi: "",
+    kota: "",
+    kecamatan: "",
+    kelurahan: "",
+  });
+
+  const [address, setAddress] = useState(customer.addresses);
 
   const fetchProvinsi = async () => {
     let response = await axios.get(url + "address/provinsi");
@@ -133,6 +202,126 @@ const AddressTab = () => {
   const kelurahanChange = (option) => {
     setKelurahan(option || []);
   };
+  const resetModel = () => {
+    setProvinsi(null);
+    setKota(null);
+    setKecamatan(null);
+    setKelurahan(null);
+    setListKota(null);
+    setListKecamatan(null);
+    setListKelurahan(null);
+    setLabelAlamat("");
+    setNamaPenerima("");
+    setAlamatLengkap("");
+    setNomorHp("");
+    setCatatan("");
+    setDefaultHome(false);
+  };
+  const onSubmitHandler = async (event) => {
+    event.preventDefault();
+    setLoading(true);
+    let labelError =
+      labelAlamat === "" || labelAlamat === null ? "Label must be filled" : "";
+    let nameError =
+      namaPenerima === "" || namaPenerima === null
+        ? "Receiver  must be filled"
+        : "";
+    let alamatError =
+      alamatLengkap === "" || alamatLengkap === null
+        ? "Full Address  must be filled"
+        : "";
+    let phoneError =
+      nomorHp === null || nomorHp === "" ? "Phone Number must be filled" : "";
+    let provinsiError = provinsi === null ? "Must Choose Province" : "";
+    let kotaError = kota === null ? "Must Choose City" : "";
+    let kecamatanError = kecamatan === null ? "Must Choose District" : "";
+    let kelurahanError = kelurahan === null ? "Must Choose Urban" : "";
+    if (
+      !labelError &&
+      !nameError &&
+      !alamatError &&
+      !provinsiError &&
+      !kotaError &&
+      !kecamatanError &&
+      !kelurahanError
+    ) {
+      let body = {
+        id: null,
+        labelAlamat: labelAlamat,
+        penerima: namaPenerima,
+        phone: nomorHp,
+        alamat: alamatLengkap,
+        provinsi: provinsi.value,
+        kota: kota.value,
+        kelurahan: kelurahan.value,
+        kecamatan: kecamatan.value,
+        optional: catatan,
+        utama: defaultHome,
+      };
+      try {
+        let response = await axios.post(
+          url + "customer/profile/address",
+          body,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+        sessionStorage.setItem("toastMessage", "Successfully saved address");
+        closeModal();
+        setLoading(false);
+        window.location.reload();
+      } catch (error) {
+        console.log(error);
+      }
+    } else {
+      setError({
+        label: labelError,
+        penerima: nameError,
+        alamat: alamatError,
+        nomor: phoneError,
+        provinsi: provinsiError,
+        kota: kotaError,
+        kecamatan: kecamatanError,
+        kelurahan: kelurahanError,
+      });
+
+      setLoading(false);
+    }
+  };
+  const addHandler = () => {
+    setModalHeader("Add");
+    setActivity("add");
+    openModal();
+  };
+  const editHandler = async (index) => {
+    let addres = address[index];
+    setModalHeader("Edit");
+    setActivity("edit");
+    setLabelAlamat(addres.labelAlamat);
+    setNamaPenerima(addres.penerima);
+    setNomorHp(addres.phone);
+    setAlamatLengkap(addres.alamat);
+    provinsiChange(addres.provinsi);
+    kotaChange(addres.kota);
+    kecamatanChange(addres.kecamatan);
+    kelurahanChange(addres.kelurahan);
+    setCatatan(addres.optional);
+    setDefaultHome(addres.utama);
+    openModal();
+  };
+
+  useEffect(() => {
+    const toastMessage = sessionStorage.getItem("toastMessage");
+    if (toastMessage) {
+      if (!toast.isActive(toastId.current)) {
+        toastId.current = toast.success(toastMessage);
+      }
+
+      sessionStorage.removeItem("toastMessage");
+    }
+  }, []);
   useEffect(() => {
     fetchProvinsi();
   }, []);
@@ -150,10 +339,13 @@ const AddressTab = () => {
     defaultHome,
     catatan,
   ]);
+
+  useEffect(() => {}, [address]);
+  if (loading) return <Loading />;
   return (
-    <div>
-      <div className="flex justify-between mb-4">
-        <div className="flex items-center border border-gray-300 rounded-lg px-4 py-2 w-3/4 sm:w-1/2">
+    <div className="space-y-6 px-4 sm:px-8">
+      <div className="flex flex-col lg:flex-row items-center justify-between w-full lg:w-3/4 space-y-4 lg:space-y-0">
+        <div className="flex items-center border border-gray-300 rounded-lg px-4 py-2 flex-grow">
           <FontAwesomeIcon
             icon={faMagnifyingGlass}
             className="text-gray-400 mr-3"
@@ -164,16 +356,19 @@ const AddressTab = () => {
             placeholder="Tulis Nama Alamat / Kota / Kecamatan tujuan pengiriman"
           />
         </div>
-        <Button
-          className="py-2"
-          size="lg"
-          variant="dark"
-          outline={true}
-          type="button"
-          onClick={openModal}
-        >
-          <FontAwesomeIcon icon={faCirclePlus} /> &nbsp; Add New Address
-        </Button>
+        <div className="lg:ml-4">
+          <Button
+            className="py-2 flex justify-center items-center"
+            size="md"
+            variant="dark"
+            outline={true}
+            type="button"
+            onClick={addHandler}
+          >
+            <FontAwesomeIcon icon={faCirclePlus} /> &nbsp; Add New Address
+          </Button>
+        </div>
+
         <Modal
           isOpen={isModalOpen}
           onClose={closeModal}
@@ -183,7 +378,10 @@ const AddressTab = () => {
           closeOnOutsideClick={false}
           autoScroll={false}
         >
-          <form className="flex flex-col w-full items-start gap-3 max-h-[450px]">
+          <form
+            className="flex flex-col w-full items-start gap-3 max-h-[450px] "
+            onSubmit={onSubmitHandler}
+          >
             <div className="w-full">
               <p className="mb-2">
                 Label Alamat <Mandatory />
@@ -193,6 +391,7 @@ const AddressTab = () => {
                 type="text"
                 placeholder="Type here"
                 value={labelAlamat}
+                error={error.label}
                 onChange={(e) => setLabelAlamat(e.target.value)}
               />
             </div>
@@ -205,6 +404,7 @@ const AddressTab = () => {
                 type="text"
                 placeholder="Type here"
                 value={namaPenerima}
+                error={error.penerima}
                 onChange={(e) => setNamaPenerima(e.target.value)}
               />
             </div>
@@ -217,6 +417,7 @@ const AddressTab = () => {
                 type="number"
                 placeholder="Type here"
                 value={nomorHp}
+                error={error.nomor}
                 onChange={(e) => setNomorHp(e.target.value)}
               />
             </div>
@@ -228,6 +429,7 @@ const AddressTab = () => {
                 className="w-full max-w-[500px] px-3 py-2"
                 placeholder="Type here"
                 value={alamatLengkap}
+                error={error.alamat}
                 onChange={(e) => setAlamatLengkap(e.target.value)}
               />
             </div>
@@ -235,10 +437,11 @@ const AddressTab = () => {
               <p className="mb-2">
                 Provinsi <Mandatory />
               </p>
-              <Select
+              <SelectCustom
                 value={provinsi}
                 onChange={provinsiChange}
                 option={listProvinsi}
+                error={error.provinsi}
               />
             </div>
             {listKota && (
@@ -246,7 +449,12 @@ const AddressTab = () => {
                 <p className="mb-2">
                   Kota <Mandatory />
                 </p>
-                <Select value={kota} onChange={kotaChange} option={listKota} />
+                <SelectCustom
+                  value={kota}
+                  onChange={kotaChange}
+                  option={listKota}
+                  error={error.kota}
+                />
               </div>
             )}
             {listKecamatan && (
@@ -254,10 +462,11 @@ const AddressTab = () => {
                 <p className="mb-2">
                   Kecamatan <Mandatory />
                 </p>
-                <Select
+                <SelectCustom
                   value={kecamatan}
                   onChange={kecamatanChange}
                   option={listKecamatan}
+                  error={error.kecamatan}
                 />
               </div>
             )}
@@ -266,10 +475,11 @@ const AddressTab = () => {
                 <p className="mb-2">
                   Kelurahan <Mandatory />
                 </p>
-                <Select
+                <SelectCustom
                   value={kelurahan}
                   onChange={kelurahanChange}
                   option={listKelurahan}
+                  error={error.kelurahan}
                 />
               </div>
             )}
@@ -287,6 +497,7 @@ const AddressTab = () => {
               <input
                 type="checkbox"
                 id="defaultHome"
+                checked={defaultHome}
                 onChange={(e) => setDefaultHome(e.target.checked)}
               />
               <label className="cursor-pointer" htmlFor="defaultHome">
@@ -309,51 +520,72 @@ const AddressTab = () => {
       {/* Address List */}
       <div className="space-y-4">
         {/* Primary Address */}
-        <div className="bg-green-100 border border-green-400 p-4 rounded shadow">
-          <div className="flex justify-between">
-            <h3 className="font-semibold">
-              Alamat Rumah
-              <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">
-                Utama
-              </span>
-            </h3>
-            <span className="text-green-600 font-semibold">✓</span>
-          </div>
-          <p className="mt-1 font-medium">Dendy Tiawan Putra</p>
-          <p className="text-gray-600">087887693187</p>
-          <p className="text-gray-600">Jalan Tebet Barat VI B nomor 2</p>
-          <div className="mt-2 flex space-x-4 text-green-600">
-            <button>Ubah Alamat</button>
-          </div>
-        </div>
+        {address ? (
+          address.map((addres, index) =>
+            addres.utama === true ? (
+              <div
+                className="bg-green-100 border border-green-400 p-4  shadow rounded-lg"
+                key={addres.id}
+              >
+                <div className="flex justify-between">
+                  <h3 className="font-semibold">
+                    {addres.labelAlamat}
+                    <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">
+                      Utama
+                    </span>
+                  </h3>
+                  <span className="text-green-600 font-semibold">✓</span>
+                </div>
+                <p className="mt-1 font-medium">{addres.penerima}</p>
+                <p className="text-gray-600">{addres.phone}</p>
+                <p className="text-gray-600">{addres.alamat}</p>
+                <div className="mt-2 flex space-x-4 ">
+                  <button
+                    className="text-green-600"
+                    onClick={() => editHandler(index)}
+                  >
+                    Ubah Alamat
+                  </button>
+                  <button className="text-red-600">Hapus Alamat</button>
+                </div>
+              </div>
+            ) : (
+              <Cards key={addres.id}>
+                <div className="flex justify-between">
+                  <h3 className="font-semibold">{addres.labelAlamat}</h3>
+                </div>
+                <p className="mt-1 font-medium">{addres.penerima}</p>
+                <p className="text-gray-600">{addres.phone}</p>
+                <p className="text-gray-600">{addres.alamat}</p>
+                <div className="mt-2 flex space-x-4 ">
+                  <button
+                    className="text-green-600"
+                    onClick={() => editHandler(index)}
+                  >
+                    Ubah Alamat
+                  </button>
+                  <button className="text-red-600">Hapus Alamat</button>
+                </div>
+              </Cards>
+            )
+          )
+        ) : (
+          <Cards>
+            <div className="flex justify-center items-center">
+              No data found
+            </div>
+          </Cards>
+        )}
       </div>
     </div>
   );
 };
 
-const AccountTab = () => {
-  const [customer, setCustomer] = useState(null);
-  const [loading, setLoading] = useState(true);
-  let url = backendUrl + "/v1/api/customer/profile";
-  const fetchCustomer = async () => {
-    try {
-      const response = await axios.get(url, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-      setCustomer(response.data.data);
-      setLoading(false);
-    } catch (error) {
-      console.error("Error fetching customer:", error);
-    }
-  };
-  useEffect(() => {
-    fetchCustomer();
-  }, []);
-  useEffect(() => {
-    console.log(customer);
-  }, [customer]);
+const AccountTab = ({ customer, setCustomer }) => {
+  const [isModalOpen, setModalOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const openModal = () => setModalOpen(true);
+  const closeModal = () => setModalOpen(false);
   if (loading) return <Loading />;
   return (
     <div>
@@ -371,9 +603,6 @@ const AccountTab = () => {
                 <p className="text-gray-900 font-medium text-center sm:text-left">
                   {customer.name}
                 </p>
-                <button className="text-green-600 font-medium text-center sm:text-left">
-                  Ubah
-                </button>
               </div>
 
               {/* Email */}
@@ -389,12 +618,23 @@ const AccountTab = () => {
                       customer.emailVerified ? "text-green-600" : "text-red-600"
                     }  text-xs px-2 py-1 rounded`}
                   >
-                    Terverifikasi
+                    {customer.emailVerified
+                      ? "Terverifikasi"
+                      : "Belum Terverifikasi"}
                   </span>
                 </div>
-                <button className="text-green-600 font-medium text-center sm:text-left">
-                  Ubah
-                </button>
+                <div className="flex justify-center sm:justify-start items-center space-x-2">
+                  <Button
+                    className="py-2 font-medium sm:items-center w-20"
+                    variant="dark"
+                    outline={false}
+                    type="button"
+                    size="sm"
+                    onClick={openModal}
+                  >
+                    Ubah
+                  </Button>
+                </div>
               </div>
 
               {/* Phone Number */}
@@ -420,6 +660,16 @@ const AccountTab = () => {
           </div>
         </Cards>
       </div>
+      <Modal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        maxWidth="max-w-xl"
+        closeButton={true}
+        closeOnOutsideClick={false}
+        autoScroll={false}
+      >
+        <OtpCustom email={customer.email} />
+      </Modal>
       <div className="mb-4">
         <Cards>
           <div className="mt-6 mb-6">
