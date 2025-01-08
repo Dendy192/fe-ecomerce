@@ -19,6 +19,7 @@ import OtpCustom from "../components/OtpCustom";
 import SelectCustom from "../components/SelectCustom";
 import { Navigate, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import ConfirmationModal from "../components/Confirmation";
 
 const AccountPage = () => {
   const [activeTab, setActiveTab] = useState(
@@ -109,7 +110,15 @@ const AddressTab = ({ customer }) => {
   const navigate = useNavigate();
 
   const [isModalOpen, setModalOpen] = useState(false);
+  const [confirmModal, setConfirmModal] = useState(false);
+
   const [loading, setLoading] = useState(false);
+  const openConfirm = () => setConfirmModal(true);
+  const closeConfirm = () => {
+    setConfirmModal(false);
+    resetModel();
+  };
+
   const openModal = () => setModalOpen(true);
   const closeModal = () => {
     setModalOpen(false);
@@ -121,6 +130,7 @@ const AddressTab = ({ customer }) => {
   const toastId = useRef(null);
   const toastIdError = useRef(null);
 
+  const [addressId, setAddressId] = useState(null);
   const [provinsi, setProvinsi] = useState(null);
   const [kota, setKota] = useState(null);
   const [kecamatan, setKecamatan] = useState(null);
@@ -150,6 +160,7 @@ const AddressTab = ({ customer }) => {
   });
 
   const [address, setAddress] = useState(customer.addresses);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchProvinsi = async () => {
     let response = await axios.get(url + "address/provinsi");
@@ -210,6 +221,7 @@ const AddressTab = ({ customer }) => {
     setListKota(null);
     setListKecamatan(null);
     setListKelurahan(null);
+    setAddressId(null);
     setLabelAlamat("");
     setNamaPenerima("");
     setAlamatLengkap("");
@@ -245,31 +257,82 @@ const AddressTab = ({ customer }) => {
       !kecamatanError &&
       !kelurahanError
     ) {
-      let body = {
-        id: null,
-        labelAlamat: labelAlamat,
-        penerima: namaPenerima,
-        phone: nomorHp,
-        alamat: alamatLengkap,
-        provinsi: provinsi.value,
-        kota: kota.value,
-        kelurahan: kelurahan.value,
-        kecamatan: kecamatan.value,
-        optional: catatan,
-        utama: defaultHome,
-      };
+      if (activity === "add") {
+        let body = {
+          id: null,
+          labelAlamat: labelAlamat,
+          penerima: namaPenerima,
+          phone: nomorHp,
+          alamat: alamatLengkap,
+          provinsi: provinsi.value,
+          kota: kota.value,
+          kelurahan: kelurahan.value,
+          kecamatan: kecamatan.value,
+          optional: catatan,
+          utama: defaultHome,
+        };
+        try {
+          let response = await axios.post(
+            url + "customer/profile/address",
+            body,
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+              },
+            }
+          );
+          sessionStorage.setItem("toastMessage", "Successfully saved address");
+          closeModal();
+          setLoading(false);
+          window.location.reload();
+        } catch (error) {
+          console.log(error);
+        }
+      } else if (activity === "edit") {
+        let body = {
+          id: addressId,
+          labelAlamat: labelAlamat,
+          penerima: namaPenerima,
+          phone: nomorHp,
+          alamat: alamatLengkap,
+          provinsi: provinsi.value,
+          kota: kota.value,
+          kelurahan: kelurahan.value,
+          kecamatan: kecamatan.value,
+          optional: catatan,
+          utama: defaultHome,
+        };
+        try {
+          let response = await axios.put(
+            url + "customer/profile/address",
+            body,
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+              },
+            }
+          );
+          sessionStorage.setItem("toastMessage", "Successfully update address");
+          closeModal();
+          setLoading(false);
+          window.location.reload();
+        } catch (error) {
+          console.log(error);
+        }
+      }
+    } else if (activity === "delete") {
       try {
-        let response = await axios.post(
-          url + "customer/profile/address",
-          body,
+        let response = await axios.delete(
+          url + "customer/profile/address?id=" + addressId,
+
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("token")}`,
             },
           }
         );
-        sessionStorage.setItem("toastMessage", "Successfully saved address");
-        closeModal();
+        sessionStorage.setItem("toastMessage", "Successfully delete address");
+        closeConfirm();
         setLoading(false);
         window.location.reload();
       } catch (error) {
@@ -295,8 +358,9 @@ const AddressTab = ({ customer }) => {
     setActivity("add");
     openModal();
   };
-  const editHandler = async (index) => {
+  const editHandler = (index) => {
     let addres = address[index];
+    setAddressId(addres.id);
     setModalHeader("Edit");
     setActivity("edit");
     setLabelAlamat(addres.labelAlamat);
@@ -312,6 +376,26 @@ const AddressTab = ({ customer }) => {
     openModal();
   };
 
+  const deleteHandler = (index) => {
+    let addres = address[index];
+    setAddressId(addres.id);
+    setActivity("delete");
+
+    openConfirm();
+  };
+
+  const searchHandler = (e) => {
+    const query = e.target.value.toLowerCase();
+    setSearchQuery(query);
+    const filtered = customer.addresses.filter(
+      (addr) =>
+        addr.labelAlamat.toLowerCase().includes(query) ||
+        addr.penerima.toLowerCase().includes(query) ||
+        addr.alamat.toLowerCase().includes(query) ||
+        addr.phone.toLowerCase().includes(query)
+    );
+    setAddress(filtered);
+  };
   useEffect(() => {
     const toastMessage = sessionStorage.getItem("toastMessage");
     if (toastMessage) {
@@ -328,6 +412,7 @@ const AddressTab = ({ customer }) => {
 
   useEffect(() => {}, [listProvinsi, listKota, listKecamatan, listKelurahan]);
   useEffect(() => {}, [
+    addressId,
     alamatLengkap,
     namaPenerima,
     labelAlamat,
@@ -341,6 +426,7 @@ const AddressTab = ({ customer }) => {
   ]);
 
   useEffect(() => {}, [address]);
+  useEffect(() => {}, [modalHeader, activity]);
   if (loading) return <Loading />;
   return (
     <div className="space-y-6 px-4 sm:px-8">
@@ -354,6 +440,8 @@ const AddressTab = ({ customer }) => {
             className="flex-1 outline-none bg-transparent text-sm text-gray-600 placeholder-gray-400"
             type="text"
             placeholder="Tulis Nama Alamat / Kota / Kecamatan tujuan pengiriman"
+            onChange={searchHandler}
+            value={searchQuery}
           />
         </div>
         <div className="lg:ml-4">
@@ -546,7 +634,12 @@ const AddressTab = ({ customer }) => {
                   >
                     Ubah Alamat
                   </button>
-                  <button className="text-red-600">Hapus Alamat</button>
+                  <button
+                    className="text-red-600"
+                    onClick={() => deleteHandler(index)}
+                  >
+                    Hapus Alamat
+                  </button>
                 </div>
               </div>
             ) : (
@@ -564,7 +657,12 @@ const AddressTab = ({ customer }) => {
                   >
                     Ubah Alamat
                   </button>
-                  <button className="text-red-600">Hapus Alamat</button>
+                  <button
+                    className="text-red-600"
+                    onClick={() => deleteHandler(index)}
+                  >
+                    Hapus Alamat
+                  </button>
                 </div>
               </Cards>
             )
@@ -577,6 +675,11 @@ const AddressTab = ({ customer }) => {
           </Cards>
         )}
       </div>
+      <ConfirmationModal
+        isOpen={confirmModal}
+        onClose={closeConfirm}
+        onSubmit={onSubmitHandler}
+      />
     </div>
   );
 };
