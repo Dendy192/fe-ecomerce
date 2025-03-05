@@ -12,7 +12,7 @@ const Hero = ({ setHeroLoading }) => {
     assets.hero_img,
     assets.hero_img1,
   ]);
-  //!todo add getimage hero from db
+
   return (
     <div className="relative  mt-[80px] sm:flex-row border border-gray-400 z-0">
       <Swiper
