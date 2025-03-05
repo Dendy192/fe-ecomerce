@@ -16,8 +16,23 @@ const RelatedProducts = ({ category, subCategory }) => {
       productsCopy = productsCopy.filter(
         (item) => item.subCategory.id === subCategory.id
       );
+
       setRelated(productsCopy.slice(0, 5));
     }
+    // if (products.length > 0 && category?.id && subCategory?.id) {
+    //   const filteredProducts = products
+    //     .filter(
+    //       (item) =>
+    //         item.category?.id === category.id &&
+    //         item.subCategory?.id === subCategory.id
+    //     )
+    //     .map((product) => ({
+    //       ...product,
+    //       img: product.img.map((imgPath) => `${backendUrl}/images/${imgPath}`),
+    //     }));
+
+    //   setRelated(filteredProducts.slice(0, 5));
+    // }
   }, [products]);
 
   return (
@@ -29,7 +44,7 @@ const RelatedProducts = ({ category, subCategory }) => {
         {related.map((item, index) => (
           <ProductItems
             key={index}
-            id={item._id}
+            id={item.id}
             name={item.name}
             image={item.img}
             price={item.price}

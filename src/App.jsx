@@ -24,7 +24,10 @@ export const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const App = () => {
   const [isVisible, setIsVisible] = useState(true);
   const [isNavbarFixed, setIsNavbarFixed] = useState(false);
-
+  const getToken = async () => {
+    const fetchedToken = await fetchToken();
+    setToken(fetchedToken);
+  };
   const fetchToken = async () => {
     let result = null;
 
@@ -44,6 +47,7 @@ const App = () => {
           return localStorage.getItem("token");
         }
       } catch (error) {
+        console.log("error dari fetch token", error);
         // localStorage.removeItem("token");
       }
     }
@@ -52,11 +56,6 @@ const App = () => {
 
   const [token, setToken] = useState(null);
   useEffect(() => {
-    const getToken = async () => {
-      const fetchedToken = await fetchToken();
-      setToken(fetchedToken);
-    };
-
     getToken();
   }, []); // Empty dependency array to run once when the component mounts
   useEffect(() => {
@@ -105,7 +104,7 @@ const App = () => {
         transition:Bounce
       />
       {/* <AnnounchmentBar isVisible={isVisible} /> */}
-      <Navbar isFixed={isNavbarFixed} token={token} setToken={setToken} />
+      <Navbar token={token} setToken={setToken} />
       <SearchBar />
       <Routes>
         <Route path="/" element={<Home />} />
@@ -115,7 +114,10 @@ const App = () => {
         <Route path="/contact" element={<Contact />} />
         <Route path="/product/:productId" element={<Product token={token} />} />
         <Route path="/cart" element={<Cart token={token} />} />
-        <Route path="/login" element={<Login setToken={setToken} />} />
+        <Route
+          path="/login"
+          element={<Login setToken={setToken} token={token} />}
+        />
         <Route path="/place-order" element={<PlaceOrder token={token} />} />
         <Route path="/orders" element={<Orders token={token} />} />
         <Route path="/reset-password" element={<ResetPassword />} />

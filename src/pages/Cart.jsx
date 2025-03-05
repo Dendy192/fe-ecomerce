@@ -1,100 +1,449 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { ShopContext } from "../context/ShopContext";
 import Title from "../components/Title";
 import { assets } from "../assets/assets";
 import CartTotal from "../components/CartTotal";
 import Loading from "../components/Loading";
+import PriceFormatter from "../components/PriceFormatter";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faCircleMinus,
+  faCirclePlus,
+  faTrash,
+} from "@fortawesome/free-solid-svg-icons";
+import { toast } from "react-toastify";
+import ConfirmationModal from "../components/Confirmation";
+import { backendUrl } from "../App";
+import axios from "axios";
 
 const Cart = ({ token }) => {
-  const [loading, setLoading] = useState(true);
-  const { products, currency, cartItems, updateQuantity, navigate } =
-    useContext(ShopContext);
-
+  const [loading, setLoading] = useState(false);
+  const {
+    products,
+    currency,
+    cartItems,
+    updateQuantity,
+    navigate,
+    getChart,
+    getProduct,
+  } = useContext(ShopContext);
+  const url = backendUrl + "/v1/api/cart";
+  const toastId = useRef(null);
+  const toastIdError = useRef(null);
   const [cartData, setCartData] = useState([]);
-  useEffect(() => {
-    const tempData = [];
-    for (const items in cartItems) {
-      for (const item in cartItems[items]) {
-        if (cartItems[items][item] > 0) {
-          tempData.push({
-            _id: items,
-            size: item,
-            quantity: cartItems[items][item],
-          });
+  const [confirmationModal, setConfirmationModal] = useState(false);
+  const openModal = () => setConfirmationModal(true);
+  const closeModal = () => setConfirmationModal(false);
+  const onSubmitConfirmationModal = async (e, cartItemId) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await deleteCart(cartItemId);
+    } catch (error) {
+      console.log(error);
+    } finally {
+      closeModal();
+      setLoading(false);
+    }
+  };
+
+  const deleteCart = async (cartItemId) => {
+    try {
+      let body = {
+        cartId: cartItems.id,
+        cartItemId: cartItemId,
+      };
+
+      let response = await axios.delete(url, {
+        data: body,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (response.data.success) {
+        if (!toast.isActive(toastId.current)) {
+          toastId.current = toast.success("Item has been deleted from cart");
+        }
+        setCartData((prevItems) =>
+          prevItems.filter((item) => item.id !== cartItemId)
+        );
+        getChart();
+        navigate("/cart");
+      } else {
+        if (!toast.isActive(toastIdError.current)) {
+          toastIdError.current = toast.error(response.data.data);
         }
       }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  const handleBlur = async (
+    productId,
+    cartItemId,
+    variant,
+    size,
+    quantity,
+    newQuantity
+  ) => {
+    setLoading(true);
+    // Pastikan input angka valid
+    newQuantity = String(newQuantity).replace(/^0+/, "") || "1";
+    newQuantity = parseInt(newQuantity) > 0 ? parseInt(newQuantity) : 1;
+    const updatedCartData = cartData.map((item) => {
+      if (item.productId === productId && item.id === cartItemId) {
+        return {
+          ...item,
+          quantity: newQuantity,
+        };
+      }
+      return item;
+    });
+
+    setCartData(updatedCartData);
+
+    let response = await updateQuantity(productId, size, variant, newQuantity);
+
+    if (!response.success) {
+      // console.log(response.data);
+      if (!toast.isActive(toastIdError.current)) {
+        toastIdError.current = toast.error(response.data);
+      }
+      setCartData(cartItems.items);
+    }
+    getChart();
+    setLoading(false);
+  };
+  const onQuantityButtonChange = async (
+    productId,
+    cartItemId,
+    variant,
+    size,
+    quantity,
+    newQuantity
+  ) => {
+    setLoading(true);
+    newQuantity = String(newQuantity).replace(/^0+/, "") || "0";
+    quantity = String(quantity).replace(/^0+/, "") || "0";
+
+    let tmp = parseInt(quantity) + parseInt(newQuantity);
+
+    let updatedCartData = cartData.map((item) => {
+      if (item.productId === productId && item.id === cartItemId) {
+        let updatedQuantity = parseInt(quantity) + parseInt(newQuantity);
+
+        return {
+          ...item,
+          quantity: updatedQuantity > 0 ? updatedQuantity : 0,
+        };
+      }
+      return item;
+    });
+
+    if (tmp == 0) {
+      await deleteCart(cartItemId);
+    } else {
+      // ini update data
+      let response = await updateQuantity(productId, size, variant, tmp);
+
+      if (!response.success) {
+        // console.log(response.data);
+        if (!toast.isActive(toastIdError.current)) {
+          toastIdError.current = toast.error(response.data);
+        }
+
+        setCartData(cartItems.items);
+      } else {
+        setCartData(updatedCartData);
+        getChart();
+      }
+    }
+    setLoading(false);
+  };
+  const onQuantityChange = async (
+    productId,
+    cartItemId,
+    variant,
+    size,
+    quantity,
+    newQuantity
+  ) => {
+    newQuantity = String(newQuantity).replace(/^0+/, "") || "0";
+
+    let updatedCartData = cartData.map((item) => {
+      if (item.productId === productId && item.id === cartItemId) {
+        return {
+          ...item,
+          quantity: newQuantity > 0 ? newQuantity : 0,
+        };
+      }
+      return item;
+    });
+
+    setCartData(updatedCartData);
+  };
+
+  const fectData = () => {
+    setLoading(true);
+
+    if (products == null) {
+      getProduct();
     }
 
-    setCartData(tempData);
-    setLoading(false);
-  }, [cartItems]);
+    if (cartItems == null) {
+      getChart();
+    }
 
+    setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+  };
+  useEffect(() => {
+    // Fetch products only if not already loaded
+    fectData();
+    if (cartItems != null) setCartData(cartItems.items);
+  }, [products, cartItems]); // Only trigger if `products` is empty
+
+  // useEffect(() => {
+  //   // Fetch products only if not already loaded
+  //   setLoading(true);
+
+  //   if (cartItems == null) {
+  //     getChart();
+  //   }
+
+  //   setLoading(false);
+  // }, [cartItems, products]); // Only trigger if `products` is empty
+  useEffect(() => {}, [cartData]);
+
+  useEffect(() => {
+    if (!token && !localStorage.getItem("token")) {
+      navigate("/login");
+    }
+  }, [token]);
   if (loading) return <Loading />;
-  if (!token) navigate("/login");
+
   return (
-    <div className="border-t pt-14 px-4">
+    <div className="border-t pt-14 px-4 mt-[80px]">
       <div className="text-2xl mb-3 ">
         <Title text1={"YOUR"} text2={"CART"} />
       </div>
       <div className="">
-        {cartData === 0
+        <div className="hidden sm:grid grid-cols-7 font-medium border-b pb-2 text-center text-xs sm:text-base">
+          <p>Product</p>
+          <p>Variant</p>
+          <p>Size</p>
+          <p>Price</p>
+          <p>Quantity</p>
+          <p>Total Price</p>
+          <p>Action</p>
+        </div>
+        {cartData == 0
           ? "No Item"
           : cartData.map((item, index) => {
               const productData = products.find(
-                (product) => product._id === item._id
+                (product) => product.id === item.productId
               );
+
+              let variant = productData.variants.find(
+                (variant1) => variant1.id == item.variant
+              );
+
               return (
                 <div
                   key={index}
-                  className="py-4 border-t border-b text-gray-700 grid grid-cols[4fr_0.5fr_0.5fr] sm:grid-cols-[4fr_2fr_0.5fr] items-center gap-4"
+                  className="grid sm:grid-cols-7 items-center gap-2 sm:gap-4 border-b py-4 text-left sm:text-center text-xs sm:text-base"
                 >
-                  <div className="flex items-start gap-6">
+                  {/* Mobile Layout */}
+                  <div className="sm:hidden flex items-center gap-4 relative">
                     <img
-                      className="w-16 sm:w-20"
-                      src={productData.image[0]}
-                      alt=""
+                      className="w-16 rounded object-cover"
+                      src={productData.img[0]}
+                      alt={productData.name}
                     />
                     <div>
-                      <p className="text-xs sm:text-lg font-medium">
-                        {productData.name}
+                      <p className="text-sm font-medium">{productData.name}</p>
+                      <p className="text-xs">Variant: {variant.name}</p>
+                      <p className="text-xs">Size: {item.size}</p>
+                      <p className="text-xs">
+                        Price: <PriceFormatter price={productData.price} />
                       </p>
-                      <div className="flex items-center gap-5 mt-2">
-                        <p>
-                          {currency}
-                          {productData.price}.000
-                        </p>
-                        <p className="px-2 sm:px-3 sm:py-1 border bg-slate-50">
-                          {item.size}
-                        </p>
+                      <p className="text-xs">
+                        Total:
+                        <PriceFormatter
+                          price={productData.price * item.quantity}
+                        />
+                      </p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <div
+                          className="px-2 cursor-pointer"
+                          onClick={() =>
+                            onQuantityButtonChange(
+                              item.productId,
+                              item.id,
+                              item.variant,
+                              item.size,
+                              item.quantity,
+                              -1
+                            )
+                          }
+                        >
+                          <FontAwesomeIcon icon={faCircleMinus} size="2xl" />
+                        </div>
+                        <div>
+                          <input
+                            className="border w-12 text-center px-1 py-1 rounded text-xs"
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) =>
+                              onQuantityChange(
+                                item.productId,
+                                item.id,
+                                item.variant,
+                                item.size,
+                                item.quantity,
+                                e.target.value
+                              )
+                            }
+                            onBlur={(e) => {
+                              handleBlur(
+                                item.productId,
+                                item.id,
+                                item.variant,
+                                item.size,
+                                item.quantity,
+                                e.target.value
+                              );
+                            }}
+                          />
+                        </div>
+                        <div
+                          className="px-2 cursor-pointer"
+                          onClick={() =>
+                            onQuantityButtonChange(
+                              item.productId,
+                              item.id,
+                              item.variant,
+                              item.size,
+                              item.quantity,
+                              +1
+                            )
+                          }
+                        >
+                          <FontAwesomeIcon icon={faCirclePlus} size="2xl" />
+                        </div>
+                      </div>
+                      <div className="absolute bottom-0 right-0 p-2">
+                        <button onClick={openModal}>
+                          <img
+                            className="w-5 cursor-pointer"
+                            src={assets.bin_icon}
+                            alt="Delete"
+                          />
+                        </button>
                       </div>
                     </div>
                   </div>
-                  <input
-                    onChange={(e) =>
-                      e.target.value === "" || e.target.value === "0"
-                        ? null
-                        : updateQuantity(
-                            item._id,
-                            item.size,
-                            Number(e.target.value)
-                          )
-                    }
-                    className="border max-w-10 sm:max-w-20 px-1 sm:px-2 py-1 "
-                    type="number"
-                    min={1}
-                    defaultValue={item.quantity}
+
+                  {/* Desktop Layout */}
+                  <div className="hidden sm:flex items-center gap-4 ">
+                    <img
+                      className="w-16 sm:w-20 rounded object-cover"
+                      src={productData.img[0]}
+                      alt={productData.name}
+                    />
+                    <p className="text-sm sm:text-base font-medium">
+                      {productData.name}
+                    </p>
+                  </div>
+                  <p className="hidden sm:block">{variant.name}</p>
+                  <p className="hidden sm:block">{item.size}</p>
+                  <PriceFormatter
+                    className="hidden sm:block"
+                    price={productData.price}
                   />
-                  <img
-                    onClick={() => updateQuantity(item._id, item.size, 0)}
-                    className="w-4 mr-4 sm:w-5 cursor-pointer"
-                    src={assets.bin_icon}
-                    alt=""
+                  <div className="hidden items-center sm:flex justify-center">
+                    <div
+                      className="px-2 cursor-pointer"
+                      onClick={() =>
+                        onQuantityButtonChange(
+                          item.productId,
+                          item.id,
+                          item.variant,
+                          item.size,
+                          item.quantity,
+                          -1
+                        )
+                      }
+                    >
+                      <FontAwesomeIcon icon={faCircleMinus} size="2xl" />
+                    </div>
+                    <div>
+                      <input
+                        className="border w-12 text-center px-1 py-1 rounded text-xs"
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) =>
+                          onQuantityChange(
+                            item.productId,
+                            item.id,
+                            item.variant,
+                            item.size,
+                            item.quantity,
+                            e.target.value
+                          )
+                        }
+                        onBlur={(e) =>
+                          handleBlur(
+                            item.productId,
+                            item.id,
+                            item.variant,
+                            item.size,
+                            item.quantity,
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+                    <div
+                      className="px-2 cursor-pointer"
+                      onClick={() =>
+                        onQuantityButtonChange(
+                          item.productId,
+                          item.id,
+                          item.variant,
+                          item.size,
+                          item.quantity,
+                          +1
+                        )
+                      }
+                    >
+                      <FontAwesomeIcon icon={faCirclePlus} size="2xl" />
+                    </div>
+                  </div>
+                  <PriceFormatter
+                    className="hidden sm:block"
+                    price={productData.price * item.quantity}
+                  />
+                  <div className="hidden sm:flex justify-center">
+                    <button onClick={openModal}>
+                      <img
+                        className="w-5 cursor-pointer"
+                        src={assets.bin_icon}
+                        alt="Delete"
+                      />
+                    </button>
+                  </div>
+                  <ConfirmationModal
+                    isOpen={confirmationModal}
+                    onClose={closeModal}
+                    onSubmit={(e) => onSubmitConfirmationModal(e, item.id)}
                   />
                 </div>
               );
             })}
       </div>
-      {cartItems.length !== 0 ? (
+      {cartData != 0 ? (
         <div className="flex justify-end my-20">
           <div className="w-full sm:w-[450px]">
             <CartTotal />

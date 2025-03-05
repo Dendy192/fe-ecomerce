@@ -99,7 +99,7 @@ const Collection = () => {
     setSubCategoryData(response.data.data.subCategories);
   };
   useEffect(() => {
-    if (products.length === 0) {
+    if (!Array.isArray(products) || products.length === 0) {
       getProduct();
     }
     getFilter();
@@ -117,7 +117,7 @@ const Collection = () => {
   }, [sortType]);
   if (loading) return <Loading />;
   return (
-    <div className="flex flex-col sm:flex-row gap-1 sm:gap-10 pt-10 border-t px-4 sm:px-[5vw] md:px-[7vw] lg:px-[9vw]">
+    <div className="flex flex-col mt-[80px] sm:flex-row gap-1 sm:gap-10 pt-10 border-t px-4 sm:px-[5vw] md:px-[7vw] lg:px-[9vw]">
       {/* filter options */}
       <div className="min-w-60">
         <p

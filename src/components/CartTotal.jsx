@@ -1,10 +1,23 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { ShopContext } from "../context/ShopContext";
 import Title from "./Title";
+import PriceFormatter from "./PriceFormatter";
 
 const CartTotal = () => {
-  const { currency, delivery_fee, getCartAmount } = useContext(ShopContext);
+  const { currency, delivery_fee, getCartAmount, cartItems } =
+    useContext(ShopContext);
 
+  const [totalPrice, setTotalPrice] = useState(0);
+
+  const getSubTotal = async () => {
+    let total = await getCartAmount();
+    setTotalPrice(total);
+  };
+  useEffect(() => {
+    getSubTotal();
+  }, [cartItems]);
+
+  useEffect(() => {}, [totalPrice]);
   return (
     <div className="w-full">
       <div className="text-2xl">
@@ -13,13 +26,10 @@ const CartTotal = () => {
       <div className="flex flex-col gap-2 mt-2 text-sm">
         <div className="flex justify-between">
           <p>Subtotal</p>
-          <p>
-            {currency}
-            {getCartAmount()}.000
-          </p>
+          <PriceFormatter price={totalPrice} />
         </div>
         <hr />
-        {!delivery_fee ? (
+        {/* {!delivery_fee ? (
           <div className="flex justify-between">
             <p>Shipping fee</p>
             <p>
@@ -29,16 +39,16 @@ const CartTotal = () => {
           </div>
         ) : (
           ""
-        )}
+        )} */}
 
-        <hr />
-        <div className="flex justify-between">
-          <b>Total</b>
+        {/* <hr /> */}
+        {/* <div className="flex justify-between">
+          <b>Total (estimate)</b>
           <b>
             {currency}
             {getCartAmount() === 0 ? 0 : getCartAmount() + delivery_fee}.000
           </b>
-        </div>
+        </div> */}
       </div>
     </div>
   );

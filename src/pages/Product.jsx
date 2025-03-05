@@ -1,8 +1,15 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { ShopContext } from "../context/ShopContext";
 import { assets } from "../assets/assets";
 import RelatedProducts from "../components/RelatedProducts";
+import { backendUrl } from "../App";
+import axios from "axios";
+import Loading from "../components/Loading";
+import PriceFormatter from "../components/PriceFormatter";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCircleMinus, faCirclePlus } from "@fortawesome/free-solid-svg-icons";
+import { toast } from "react-toastify";
 
 const Product = ({ token }) => {
   const { productId } = useParams();
@@ -11,47 +18,220 @@ const Product = ({ token }) => {
   const [image, setImage] = useState("");
   const [size, setSize] = useState("");
   const [variants, setVariants] = useState("");
-
+  const [video, setVideo] = useState(null);
+  const [currentMedia, setCurrentMedia] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [quantity, setQuantity] = useState(0);
+  const [sizeData, setSizeData] = useState(null);
+  const toastId = useRef(null);
+  const toastIdError = useRef(null);
+  const sizeTemplate = [
+    {
+      size: "S",
+      stock: 0,
+    },
+    {
+      size: "M",
+      stock: 0,
+    },
+    {
+      size: "L",
+      stock: 0,
+    },
+    {
+      size: "XL",
+      stock: 0,
+    },
+    {
+      size: "XLL",
+      stock: 0,
+    },
+  ];
   const fetchProductData = async () => {
-    products.map((item) => {
-      if (item.id === productId) {
-        setProductData(item);
-        setImage(item.img[0]);
-        return null;
+    let result = true;
+    if (products == null) {
+      getProduct();
+    } else {
+      products.map((item) => {
+        if (item.id === productId) {
+          setQuantity(0);
+          setSize(null);
+          setVariants(null);
+          setProductData(item);
+
+          setImage(item.img[0]);
+          setCurrentMedia("img");
+          setVideo(null);
+          if (item.video) {
+            setVideo(`${backendUrl}/api/video/${item.video}`);
+
+            setCurrentMedia("video");
+          }
+          setIsLoading(false);
+          result = false;
+          return null;
+        }
+      });
+      if (result) navigate("/collection");
+    }
+  };
+  const onClickVariant = async (id) => {
+    setVariants(id);
+    setSize(null);
+    setQuantity(null);
+    productData.variants.map((item) => {
+      if (item.id == id) {
+        setImage(item.img);
+        setSizeData(item.sizeStock);
       }
     });
   };
+  const quantityChange = (value) => {
+    value = value.replace(/^0+/, "");
+    if (value == 0) {
+      setQuantity(0);
+    } else {
+      setQuantity(value);
+    }
+  };
+  const quantityButton = (value) => {
+    let valTmp = parseInt(quantity) + parseInt(value);
+
+    if (valTmp >= 0) setQuantity(valTmp);
+  };
+  const onAddToCart = async () => {
+    try {
+      setIsLoading(true);
+      if (!variants) {
+        if (!toast.isActive(toastIdError.current)) {
+          toastIdError.current = toast.error("Select Product Variant");
+        }
+      } else if (!size) {
+        if (!toast.isActive(toastIdError.current)) {
+          toastIdError.current = toast.error("Select Product Size");
+        }
+      } else if (!quantity || quantity == 0) {
+        if (!toast.isActive(toastIdError.current)) {
+          toastIdError.current = toast.error("Input Quantity ");
+        }
+      } else if (token) {
+        // itemId, variantsId, size, quantity
+        let response = await addToCart(
+          productData.id,
+          variants,
+          size,
+          quantity
+        );
+        if (response.status) {
+          if (!toast.isActive(toastId.current)) {
+            toastId.current = toast.success(response.messages);
+          }
+        } else {
+          if (!toast.isActive(toastIdError.current)) {
+            toastIdError.current = toast.error(response.messages);
+          }
+        }
+      } else {
+        navigate("/login");
+        window.scrollTo(0, 0);
+      }
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     // Fetch products only if not already loaded
-    if (products.length === 0) {
+    if (products == null) {
+      setIsLoading(true);
       getProduct();
+      setIsLoading(false);
     }
   }, [products, getProduct]); // Only trigger if `products` is empty
 
   useEffect(() => {
     fetchProductData();
   }, [productId, products]);
-  useEffect(() => {}, [productData, image, variants]);
+  useEffect(() => {}, [
+    productData,
+    image,
+    variants,
+    video,
+    sizeData,
+    quantity,
+  ]);
+  if (isLoading) return <Loading />;
   return productData ? (
-    <div className="border-t-2 pt-10 transition-opacity ease-in duration-500 opacity-100">
+    <div className="border-t-2 mt-[80px] pt-10 transition-opacity ease-in duration-500 opacity-100 px-4">
       {/* product data */}
       <div className="flex gap-12 sm:gap12 flex-col sm:flex-row">
         {/* product images */}
-        <div className="flex-1 flex flex-col-reverse gap-3 sm:flex-row">
-          <div className="flex sm:flex-col scrollbar-hide overflow-hidden sm:overflow-y-auto justify-between sm:justify-normal sm:w-[18.7%] w-full">
-            {/* <div className="flex sm:flex-col scrollbar-hide overflow-x-auto sm:overflow-y-scroll justify-between sm:justify-normal sm:w-[18.7%] w-full"> */}
-            {productData.img.map((item, index) => (
+        <div className="flex-1 min-h-[400px] flex flex-col-reverse gap-3 sm:flex-row">
+          {/* Thumbnails Section (Scrollable) */}
+          <div className="flex sm:flex-col overflow-x-auto sm:overflow-y-auto scrollbar-hide sm:max-h-[450px] w-full sm:w-[18.7%]">
+            <div className="flex sm:flex-col gap-2 sm:gap-3">
+              {video && (
+                <div
+                  onClick={() => setCurrentMedia("video")}
+                  className="w-[30%] sm:w-full sm:mb-3 flex-shrink-0 cursor-pointer max-w-[100px] sm:max-w-full"
+                >
+                  <video
+                    className="w-full h-auto object-cover"
+                    muted
+                    playsInline
+                    controlsList="nodownload"
+                  >
+                    <source src={`${video} `} type="video/mp4" />
+                  </video>
+                </div>
+              )}
+              {productData.img.map((item, index) => (
+                <img
+                  src={item}
+                  key={index}
+                  onClick={() => {
+                    setImage(item);
+                    setCurrentMedia("img");
+                  }}
+                  className="w-[30%] sm:w-full sm:mb-3 flex-shrink-0 cursor-pointer max-w-[100px] sm:max-w-full"
+                  alt=""
+                />
+              ))}
+              {productData.variants.map((item) => (
+                <img
+                  src={item.img}
+                  key={item.id}
+                  onClick={() => {
+                    setImage(item.img);
+                    setCurrentMedia("img");
+                  }}
+                  className="w-[30%] sm:w-full sm:mb-3 flex-shrink-0 cursor-pointer max-w-[100px] sm:max-w-full"
+                  alt=""
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Main Image Section */}
+          <div className="w-full sm:w-[80%] flex justify-center items-center">
+            {video && currentMedia === "video" ? (
+              <video
+                controls
+                // autoPlay
+                playsInline
+                className="w-full max-w-[400px] sm:max-w-[500px] object-contain sm:max-h-[600px]"
+              >
+                <source src={`${video} `} type="video/mp4" />
+              </video>
+            ) : (
               <img
-                src={item}
-                key={index}
-                onClick={() => setImage(item)}
-                className="w-[24%] sm:w-full sm:mb-3 flex-shrink-0 cursor-pointer"
+                className="w-full sm:max-h-[600px] max-w-[400px] sm:max-w-[500px] object-contain"
+                src={image}
                 alt=""
               />
-            ))}
-          </div>
-          <div className="w-full sm:w-[80%]">
-            <img className="w-full h-auto" src={image} alt="" />
+            )}
           </div>
         </div>
         {/* --------- produt info------- */}
@@ -65,21 +245,19 @@ const Product = ({ token }) => {
             <img src={assets.star_dull_icon} alt="" className="w-3 5" />
             <p className="pl-2">(122)</p>
           </div>
-          <p className="mt-5 text-3xl font-medium">{productData.price}</p>
-          <p className="mt-5 text-gray-500 md:w-4/5">
-            {productData.description}
+          <p className="mt-5 text-3xl font-medium">
+            <PriceFormatter price={productData.price} />
           </p>
+
           <div className="flex flex-col gap-4 my-8">
             <p>Variants</p>
             <div className="flex gap-2">
               {productData.variants.map((item) => (
                 <button
-                  key={item.kode}
-                  onClick={() =>
-                    setVariants((prev) => (prev === item.name ? "" : item.name))
-                  }
+                  key={item.id}
+                  onClick={() => onClickVariant(item.id)}
                   className={`border py-2 px-4 bg-gray-100 ${
-                    item.name === variants
+                    item.id === variants
                       ? "border-orange-500 text-orange-500"
                       : ""
                   } hover:border-orange-500 hover:text-orange-500`}
@@ -103,44 +281,84 @@ const Product = ({ token }) => {
               )} */}
             </div>
           </div>
+
           <div className="flex flex-col gap-4 my-8">
             <p>Select Size</p>
             <div className="flex gap-2">
-              {/* {productData.variants.map((item) =>
-                item.sizeStock.map((sizeStock, index) => (
-                  <button
-                    key={index}
-                    variant="dark"
-                    onClick={() => setSize(sizeStock.size)}
-                    className={`border py-2 px-4 bg-gray-100 ${
-                      sizeStock.size === size ? "border-orange-500" : ""
-                    } ${sizeStock.stock === 0 ? "disabled" : ""}`}
-                  >
-                    {item}
-                  </button>
-                ))
-              )} */}
+              {variants
+                ? sizeData.map((item, index) => (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        if (item.stock > 0) {
+                          setSize(item.size);
+                          setQuantity(0);
+                        }
+                      }}
+                      disabled={item.stock === 0}
+                      className={`border py-2 px-4  ${
+                        item.size === size
+                          ? "bg-gray-100 border-orange-500"
+                          : ""
+                      } ${
+                        item.stock == 0 ? "bg-gray-400  cursor-not-allowed" : ""
+                      }`}
+                    >
+                      {item.size}
+                    </button>
+                  ))
+                : sizeTemplate.map((item1, index) => (
+                    <button
+                      key={index}
+                      disabled={true}
+                      className={`border py-2 px-4 bg-gray-400 opacity-50 cursor-not-allowed `}
+                    >
+                      {item1.size}
+                    </button>
+                  ))}
             </div>
           </div>
-          {variants && size ? (
-            <div className="flex flex-col gap-4 my-8">
-              <p>kuantitas</p>
-              <div className="flex gap-2">
+
+          <div className="flex flex-col gap-4 my-8">
+            <p>Quantity</p>
+            <div className="flex gap-2">
+              {variants && size ? (
+                <div className="flex justify-center items-center">
+                  <div
+                    className="px-2 cursor-pointer"
+                    onClick={() => quantityButton(-1)}
+                  >
+                    <FontAwesomeIcon icon={faCircleMinus} size="2xl" />
+                  </div>
+                  <div className="">
+                    <input
+                      type="number"
+                      value={quantity}
+                      onChange={(e) => quantityChange(e.target.value)}
+                      className="px-3 py-2 border border-gray-800"
+                    />
+                  </div>
+
+                  <div
+                    className="px-2 cursor-pointer"
+                    onClick={() => quantityButton(+1)}
+                  >
+                    <FontAwesomeIcon icon={faCirclePlus} size="2xl" />
+                  </div>
+                </div>
+              ) : (
                 <input
                   type="number"
+                  value=""
                   className="px-3 py-2 border border-gray-800"
+                  disabled={true}
                 />
-              </div>
+              )}
             </div>
-          ) : (
-            ""
-          )}
+          </div>
 
           <button
-            onClick={() => {
-              if (token) addToCart(productData.id, variants, size);
-              else navigate("/login");
-            }}
+            onClick={onAddToCart}
             className="bg-black text-white px-8 py-3 text-sm active:bg-gray-700 "
           >
             ADD TO CART
@@ -158,22 +376,7 @@ const Product = ({ token }) => {
           <p className="border px-5 py-3 text-sm"> Reviews (122)</p>
         </div>
         <div className="flex flex-col gap-4 border px-6 py-6 text-sm text-gray-500">
-          <p>
-            Lorem ipsum dolor sit amet consectetur, adipisicing elit. Sed porro,
-            enim quidem impedit id earum quos excepturi itaque ad quia unde
-            perspiciatis facilis accusamus debitis magni, hic, accusantium
-            molestiae odit.
-          </p>
-          <p>
-            Lorem ipsum dolor sit amet consectetur, adipisicing elit. Velit
-            dolorum laboriosam facilis, libero distinctio dolores modi expedita
-            consectetur magnam. Cumque praesentium voluptates vero cupiditate
-            quia modi commodi impedit hic suscipit! Lorem, ipsum dolor sit amet
-            consectetur adipisicing elit. Consequuntur porro illum quas illo
-            totam exercitationem laboriosam dignissimos perspiciatis neque
-            necessitatibus, fugiat commodi alias ea consectetur numquam
-            recusandae ipsum magnam assumenda.
-          </p>
+          <p>{productData.desc ? productData.desc : "No Description"}</p>
         </div>
       </div>
       {/* display rolated product */}

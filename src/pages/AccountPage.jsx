@@ -685,6 +685,7 @@ const AddressTab = ({ customer }) => {
 };
 
 const AccountTab = ({ customer, setCustomer }) => {
+  //ini belom selesai ya den
   const [isModalOpen, setModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const openModal = () => setModalOpen(true);
@@ -782,7 +783,7 @@ const AccountTab = ({ customer, setCustomer }) => {
                   className="py-2"
                   variant="dark"
                   outline={true}
-                  type="submit"
+                  type="button"
                 >
                   Change Password
                 </Button>

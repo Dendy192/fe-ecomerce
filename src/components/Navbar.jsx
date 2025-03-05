@@ -6,32 +6,35 @@ import Loading from "./Loading";
 
 const Navbar = ({ isFixed, token, setToken }) => {
   const [visible, setVisible] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { setShowSearch, getCartCount } = useContext(ShopContext);
+
   const logout = () => {
-    setLoading(true); // Start loading
+    setLoading(true);
     setTimeout(() => {
-      // Simulate an async process like calling an API (if required)
-      localStorage.removeItem("token"); // Remove token from local storage
-      setToken(""); // Clear the token state
-      setLoading(false); // Stop loading
-      window.location.reload(); // Refresh the page
+      localStorage.removeItem("token");
+      setToken("");
+      setLoading(false);
       navigate("/");
-    }, 1000); // Optional delay for better UX or simulate API response time
+      window.location.reload();
+    }, 1000);
   };
-  useEffect(() => {}, [token]);
+
+  const onSearch = () => {
+    setLoading(true);
+    setShowSearch(true);
+    navigate("/collection");
+    setLoading(false);
+  };
+
   if (loading) return <Loading />;
+
   return (
-    <div
-      className={`flex items-center justify-between py-5 font-medium ${
-        isFixed
-          ? "fixed top-0 left-0 w-full z-50 bg-white shadow-md"
-          : "relative"
-      } px-10`}
-    >
+    <div className="fixed top-0 left-0 w-full z-50 bg-white shadow-md px-6 py-4 flex justify-between items-center">
       <Link to="/">
-        <img src={assets.logo} className="w-36 " alt="" />
+        <img src={assets.logo} className="w-32" alt="Logo" />
       </Link>
       <ul className="hidden sm:flex gap-5 text-sm text-gray-700">
         <NavLink to="/" className="flex flex-col items-center gap-1">
@@ -55,23 +58,23 @@ const Navbar = ({ isFixed, token, setToken }) => {
         </NavLink>
       </ul>
 
-      <div className="flex items-center gap-6 ">
+      <div className="flex items-center gap-4">
         <img
-          onClick={() => setShowSearch(true)}
+          onClick={onSearch}
           src={assets.search_icon}
           className="w-5 cursor-pointer"
-          alt=""
+          alt="Search"
         />
-        <div className="group relative">
+        <div className="hidden sm:flex group relative">
           <img
             src={assets.profile_icon}
             className="w-5 cursor-pointer"
             alt=""
           />
 
-          <div className="group-hover:block hidden absolute dropdown-menu right-0 pt-4">
+          <div className="hidden sm:group-hover:block  absolute dropdown-menu right-0 pt-4">
             {token ? (
-              <div className="flex flex-col gap-2 w-36 py-3 px-5 bg-slate-100 text-gray-500 rounded">
+              <div className="sm:flex hidden flex-col gap-2 w-36 py-3 px-5 bg-slate-100 text-gray-500 rounded">
                 <p className="cursor-pointer hover:text-black">My Profile</p>
                 <p className="cursor-pointer hover:text-black">Order</p>
 
@@ -80,7 +83,7 @@ const Navbar = ({ isFixed, token, setToken }) => {
                 </p>
               </div>
             ) : (
-              <div className="flex flex-col gap-2 w-36 py-3 px-5 bg-slate-100 text-gray-500 rounded">
+              <div className="sm:flex hidden  flex-col gap-2 w-36 py-3 px-5 bg-slate-100 text-gray-500 rounded">
                 <Link to={"/login"}>
                   <p className="cursor-pointer hover:text-black">Login</p>
                 </Link>
@@ -89,23 +92,23 @@ const Navbar = ({ isFixed, token, setToken }) => {
           </div>
         </div>
         <Link to="/cart" className="relative">
-          <img src={assets.cart_icon} className="w-5 min-w-5" alt="" />
-          <p className="absolute right-[-5px] bottom-[-5px] w-4 text-center leading-4 bg-black text-white aspect-square rounded-full text-xs">
+          <img src={assets.cart_icon} className="w-5" alt="Cart" />
+          <p className="absolute -right-2 -bottom-2 bg-black text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
             {getCartCount()}
           </p>
         </Link>
         <img
-          onClick={() => setVisible(true)}
+          onClick={() => setVisible(!visible)}
           src={assets.menu_icon}
           className="w-5 cursor-pointer sm:hidden"
-          alt=""
+          alt="Menu"
         />
       </div>
 
-      {/* sidebar menu for small screen */}
+      {/* Mobile Sidebar */}
       <div
-        className={`absolute top-0 right-0 bottom-0 overflow-hidden bg-white transition-all  ${
-          visible ? "w-full" : "w-0"
+        className={`fixed top-0 right-0 h-full bg-white transition-transform transform ${
+          visible ? "translate-x-0 w-64 shadow-lg" : "translate-x-full w-0"
         }`}
       >
         <div className="flex flex-col text-gray-600">
@@ -116,31 +119,61 @@ const Navbar = ({ isFixed, token, setToken }) => {
             <img src={assets.dropdown_icon} className="h-4 rotate-180" alt="" />
             <p>Back</p>
           </div>
+          <div>
+            {token ? (
+              <>
+                <p
+                  onClick={() => setShowProfile(!showProfile)}
+                  className="cursor-pointer text-gray-700 py-2 pl-6 border"
+                >
+                  Profile ▼
+                </p>
+                {showProfile && (
+                  <div className="mt-2 pl-6">
+                    <p className="cursor-pointer hover:text-black">
+                      My Profile
+                    </p>
+                    <p className="cursor-pointer hover:text-black">Order</p>
+                    <p
+                      className="cursor-pointer hover:text-black"
+                      onClick={logout}
+                    >
+                      Log Out
+                    </p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <Link to="/login" onClick={() => setVisible(false)}>
+                <p className="text-gray-700 cursor-pointer">Login</p>
+              </Link>
+            )}
+          </div>
           <NavLink
             onClick={() => setVisible(false)}
-            className="py-2 pl-6 border"
             to="/"
+            className="block py-2 pl-6 border"
           >
             HOME
           </NavLink>
           <NavLink
             onClick={() => setVisible(false)}
-            className="py-2 pl-6 border"
             to="/collection"
+            className="block py-2 pl-6 border"
           >
             COLLECTION
           </NavLink>
           <NavLink
             onClick={() => setVisible(false)}
-            className="py-2 pl-6 border"
             to="/about"
+            className="block py-2 pl-6 border"
           >
             ABOUT
           </NavLink>
           <NavLink
             onClick={() => setVisible(false)}
-            className="py-2 pl-6 border"
             to="/contact"
+            className="block py-2 pl-6 border"
           >
             CONTACT
           </NavLink>

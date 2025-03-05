@@ -10,28 +10,35 @@ import "swiper/css";
 import "swiper/css/navigation";
 
 import { Navigation } from "swiper/modules";
+import { backendUrl } from "../App";
+import Loading from "./Loading";
 // import "swiper/swiper-bundle.css"; // Swiper styles
 
-const LatestCollection = () => {
+const LatestCollection = ({ setLatesLoading }) => {
   const { products, getProduct } = useContext(ShopContext);
   const [latesProducts, setLatesProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Fetch products only if not already loaded
-    if (products.length === 0) {
+    if (products == null) {
       getProduct();
     }
   }, [products, getProduct]); // Only trigger if `products` is empty
 
   useEffect(() => {
     // console.log(ShopContext);
-    const tmpProducts = structuredClone(products);
-    const sortedResponse = tmpProducts.sort(
-      (a, b) => new Date(b.create_dt) - new Date(a.create_dt)
-    );
-    setLatesProducts(sortedResponse.slice(0, 10));
-  }, [products]);
+    if (products) {
+      const tmpProducts = structuredClone(products);
+      const sortedResponse = tmpProducts.sort(
+        (a, b) => new Date(b.create_dt) - new Date(a.create_dt)
+      );
+      setLatesProducts(sortedResponse.slice(0, 10));
+    }
 
+    setIsLoading(false);
+  }, [products]);
+  if (isLoading) return <Loading />;
   return (
     <div className="my-10 px-4 sm:px-[5vw] md:px-[7vw] lg:px-[9vw]">
       <div className="text-center py-8 text-3xl">

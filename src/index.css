@@ -30,3 +30,50 @@ a.active hr {
     color: white;
   }
 }
+
+.swiper {
+  width: 100%;
+  height: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+.swiper-wrapper {
+  width: 100%;
+}
+.swiper-slide {
+  justify-content: center;
+  align-items: center;
+}
+.swiper-slide img {
+  display: block;
+  box-sizing: border-box;
+  border: none;
+  max-height: 350px;
+  -o-object-fit: cover;
+  object-fit: cover;
+  transition: all 0.3s ease;
+  opacity: 0.5;
+}
+
+.swiper-slide-active {
+  transform: scale(1.2);
+  z-index: 2;
+}
+.swiper-slide-active img {
+  transition: all 0.3 ease;
+  opacity: 1;
+}
+.heroSweeper {
+  position: relative;
+  z-index: 0; /* Ensure Swiper stays in the background */
+}
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield; /* Firefox */
+  appearance: textfield;
+}

@@ -9,8 +9,9 @@ import { UserContext } from "../context/UserContext";
 import { backendUrl } from "../App";
 import { toast } from "react-toastify";
 import ReCAPTCHA from "react-google-recaptcha";
+import Loading from "../components/Loading";
 
-const Login = ({ setToken }) => {
+const Login = ({ setToken, token }) => {
   const site_key = import.meta.env.VITE_CAPTCHA_SITE_KEY;
   const url = backendUrl + "/v1/api";
   const { updateFormData } = useContext(UserContext);
@@ -18,10 +19,13 @@ const Login = ({ setToken }) => {
   const [currentState, setCurrentState] = useState("");
   const toastId = useRef(null);
   const toastIdError = useRef(null);
+  const [capthaRes, setCaptchaRes] = useState(null);
 
   const [captchaToken, setCaptchaToken] = useState("");
 
   const handleCaptchaChange = (token) => {
+    if (!token) setCaptchaRes(null);
+
     setCaptchaToken(token); // Store the token for verification
   };
 
@@ -61,6 +65,9 @@ const Login = ({ setToken }) => {
           token: captchaToken,
         });
         if (responseCaptcha.data.success) {
+          setCaptchaRes(responseCaptcha.data);
+        }
+        if (responseCaptcha.data.success || capthaRes) {
           const emailError = !validateEmail(email)
             ? "Please enter a valid email address"
             : "";
@@ -164,30 +171,37 @@ const Login = ({ setToken }) => {
     setErrors({ name: "", email: "", password: "" });
   }, [currentState, activeTab]);
 
-  useEffect(() => {}, [name, password, email]);
+  useEffect(() => {}, [name, password, email, captchaToken, capthaRes]);
 
   useEffect(() => {}, [errors]);
 
-  useEffect(() => {
-    if (user) {
-      axios
-        .get(
-          `https://www.googleapis.com/oauth2/v1/userinfo?access_token=${user.access_token}`,
-          {
-            headers: {
-              Authorization: `Bearer ${user.access_token}`,
-              Accept: "application/json",
-            },
-          }
-        )
-        .then((res) => {
-          setProfile(res.data);
-          console.log(res.data);
-        })
-        .catch((err) => console.log(err));
-    }
-    console.log(user);
-  }, [user]);
+  const [loading, setLoading] = useState(true);
+  setTimeout(() => {
+    setLoading(false); // Set loading to false after 2 seconds
+  }, 1000);
+
+  // useEffect(() => {
+  //   if (user) {
+  //     axios
+  //       .get(
+  //         `https://www.googleapis.com/oauth2/v1/userinfo?access_token=${user.access_token}`,
+  //         {
+  //           headers: {
+  //             Authorization: `Bearer ${user.access_token}`,
+  //             Accept: "application/json",
+  //           },
+  //         }
+  //       )
+  //       .then((res) => {
+  //         setProfile(res.data);
+  //         console.log(res.data);
+  //       })
+  //       .catch((err) => console.log(err));
+  //   }
+  //   console.log(user);
+  // }, [user]);
+  if (loading) return <Loading />;
+  if (token) return navigate("/");
   return (
     <form
       onSubmit={onSubmitHandler}

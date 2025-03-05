@@ -3,29 +3,38 @@ import { ShopContext } from "../context/ShopContext";
 import Title from "./Title";
 import ProductItems from "./ProductItems";
 import Loading from "./Loading";
+import { backendUrl } from "../App";
 
 const BestSeller = () => {
   const { products, getProduct } = useContext(ShopContext);
   const [bestSeller, setBestSeller] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Fetch products only if not already loaded
-    if (products.length === 0) {
+    // if (products.length === 0) {
+    //   getProduct();
+    // }
+    if (products == null) {
       getProduct();
     }
   }, [products, getProduct]); // Only trigger if `products` is empty
 
   useEffect(() => {
-    const tmpProducts = structuredClone(products);
-    const sortedResponse = tmpProducts.sort(
-      (a, b) => new Date(b.create_dt) - new Date(a.create_dt)
-    );
+    if (products) {
+      const tmpProducts = structuredClone(products);
+      const sortedResponse = tmpProducts.sort(
+        (a, b) => new Date(b.create_dt) - new Date(a.create_dt)
+      );
 
-    const bestProduct = sortedResponse.filter((item) => item.best);
+      const bestProduct = sortedResponse.filter((item) => item.best);
 
-    setBestSeller(bestProduct.slice(0, 5));
+      setBestSeller(bestProduct.slice(0, 5));
+    }
+    setIsLoading(false);
   }, [products]);
 
+  if (isLoading) return <Loading />;
   return (
     <div className="my-10 px-4 sm:px-[5vw] md:px-[7vw] lg:px-[9vw]">
       <div className="text-center text-3xl py-8">
