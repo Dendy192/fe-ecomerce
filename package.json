@@ -25,7 +25,7 @@
     "react-select": "^5.9.0",
     "react-toastify": "^10.0.6",
     "reactjs-otp-input": "^2.0.10",
-    "swiper": "^11.1.14"
+    "swiper": "^11.2.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.11.1",
@@ -40,6 +40,6 @@
     "globals": "^15.9.0",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.14",
-    "vite": "^5.4.8"
+    "vite": "^6.2.0"
   }
 }
