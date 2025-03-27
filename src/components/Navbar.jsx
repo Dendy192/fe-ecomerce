@@ -13,9 +13,9 @@ const Navbar = ({ isFixed, token, setToken }) => {
 
   const logout = () => {
     setLoading(true);
+    localStorage.removeItem("sessions");
     setTimeout(() => {
-      localStorage.removeItem("token");
-      setToken("");
+      setToken(null);
       setLoading(false);
       navigate("/");
       window.location.reload();
@@ -34,7 +34,7 @@ const Navbar = ({ isFixed, token, setToken }) => {
   return (
     <div className="fixed top-0 left-0 w-full z-50 bg-white shadow-md px-6 py-4 flex justify-between items-center">
       <Link to="/">
-        <img src={assets.logo} className="w-32" alt="Logo" />
+        <img src={assets.logo} className="w-32 " alt="Logo" />
       </Link>
       <ul className="hidden sm:flex gap-5 text-sm text-gray-700">
         <NavLink to="/" className="flex flex-col items-center gap-1">
@@ -75,8 +75,18 @@ const Navbar = ({ isFixed, token, setToken }) => {
           <div className="hidden sm:group-hover:block  absolute dropdown-menu right-0 pt-4">
             {token ? (
               <div className="sm:flex hidden flex-col gap-2 w-36 py-3 px-5 bg-slate-100 text-gray-500 rounded">
-                <p className="cursor-pointer hover:text-black">My Profile</p>
-                <p className="cursor-pointer hover:text-black">Order</p>
+                <p
+                  className="cursor-pointer hover:text-black"
+                  onClick={() => navigate("/profile")}
+                >
+                  My Profile
+                </p>
+                <p
+                  className="cursor-pointer hover:text-black"
+                  onClick={() => navigate("/list/order")}
+                >
+                  Order
+                </p>
 
                 <p className="cursor-pointer hover:text-black" onClick={logout}>
                   Log Out

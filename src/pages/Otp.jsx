@@ -73,7 +73,7 @@ const Otp = ({ setToken }) => {
         console.log(JSON.stringify(response));
         if (response.data.success) {
           console.log("masuk if");
-          let token = response.data.data.token;
+          let token = response.data.data.mini_sessions;
           // localStorage.setItem("token", token);
           setToken(token);
           console.log("Token set successfully:", token);

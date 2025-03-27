@@ -17,11 +17,12 @@ import Mandatory from "../components/Mandatory";
 import Loading from "../components/Loading";
 import OtpCustom from "../components/OtpCustom";
 import SelectCustom from "../components/SelectCustom";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import ConfirmationModal from "../components/Confirmation";
 
-const AccountPage = () => {
+const AccountPage = ({ token }) => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(
     sessionStorage.getItem("activeTab")
   );
@@ -34,7 +35,7 @@ const AccountPage = () => {
     try {
       const response = await axios.get(url, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${localStorage.getItem("sessions")}`,
         },
       });
       setCustomer(response.data.data);
@@ -63,9 +64,16 @@ const AccountPage = () => {
   useEffect(() => {
     setSessions();
   }, [currentState, activeTab]);
+  useEffect(() => {
+    if (!token) {
+      sessionStorage.removeItem("activeTab");
+      navigate("/");
+    }
+  }, [token]);
   if (loading) return <Loading />;
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen mt-[70px]">
       {/* Tabs */}
       <div className="mt-8 mb-8">
         <Cards>
@@ -277,7 +285,7 @@ const AddressTab = ({ customer }) => {
             body,
             {
               headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
+                Authorization: `Bearer ${localStorage.getItem("sessions")}`,
               },
             }
           );
@@ -308,7 +316,7 @@ const AddressTab = ({ customer }) => {
             body,
             {
               headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
+                Authorization: `Bearer ${localStorage.getItem("sessions")}`,
               },
             }
           );
@@ -327,7 +335,7 @@ const AddressTab = ({ customer }) => {
 
           {
             headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
+              Authorization: `Bearer ${localStorage.getItem("sessions")}`,
             },
           }
         );

@@ -18,12 +18,12 @@ const ShopContextProvider = (props) => {
   const location = useLocation();
   const header = {
     headers: {
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
+      Authorization: `Bearer ${localStorage.getItem("sessions")}`,
     },
   };
   const getProduct = async () => {
     try {
-      let response = await axios.get(url + "/products");
+      let response = await axios.get(url + "/products", header);
       let data = response.data.data.map((product) => ({
         ...product,
         img: product.img.map((imgPath) => `${backendUrl}/api/image/${imgPath}`),
@@ -39,7 +39,7 @@ const ShopContextProvider = (props) => {
     }
   };
   const getChart = async () => {
-    if (localStorage.getItem("token")) {
+    if (localStorage.getItem("sessions") !== null) {
       try {
         let response = await axios.get(url + "/cart", header);
 
@@ -126,14 +126,16 @@ const ShopContextProvider = (props) => {
 
   const getCartAmount = async () => {
     let totalAmount = 0;
+    if (cartItems != null) {
+      let cartData = structuredClone(cartItems);
 
-    let cartData = structuredClone(cartItems);
-    cartData.items.map((items) => {
-      let product = products.find(
-        (product1) => product1.id === items.productId
-      );
-      totalAmount += parseInt(product.price) * parseInt(items.quantity);
-    });
+      cartData.items.map((items) => {
+        let product = products.find(
+          (product1) => product1.id === items.productId
+        );
+        totalAmount += parseInt(product.price) * parseInt(items.quantity);
+      });
+    }
 
     // totalAmount += parseInt(product.price) * parseInt(item.quantity);
 

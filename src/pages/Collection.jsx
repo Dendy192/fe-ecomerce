@@ -11,7 +11,7 @@ const Collection = () => {
   const url = backendUrl + "/v1/api/products";
   const { products, search, showSearch, getProduct } = useContext(ShopContext);
   const [showFilter, setShowFilter] = useState(false);
-  const [filterProducts, setFilterProducts] = useState([]);
+  const [filterProducts, setFilterProducts] = useState(null);
   const [category, setCategory] = useState([]);
   const [subCategory, setSubCategory] = useState([]);
   const [categoryData, setCategoryData] = useState([]);
@@ -54,42 +54,48 @@ const Collection = () => {
 
   const applyFilter = () => {
     setLoading(true);
-    let productsCopy = products.slice();
 
-    if (showSearch && search) {
-      productsCopy = productsCopy.filter((item) =>
-        item.name.toLowerCase().includes(search.toLowerCase())
-      );
-    }
-    if (category.length > 0) {
-      productsCopy = productsCopy.filter((item) =>
-        item.category.some((cat) => category.includes(cat.name))
-      );
-    }
-    if (subCategory.length > 0) {
-      productsCopy = productsCopy.filter((item) =>
-        item.subCategory.some((sub) => subCategory.includes(sub.name))
-      );
-    }
+    if (filterProducts != null) {
+      let productsCopy = products.slice();
 
-    setFilterProducts(productsCopy);
+      if (showSearch && search) {
+        productsCopy = productsCopy.filter((item) =>
+          item.name.toLowerCase().includes(search.toLowerCase())
+        );
+      }
+      if (category.length > 0) {
+        productsCopy = productsCopy.filter((item) =>
+          item.category.some((cat) => category.includes(cat.name))
+        );
+      }
+      if (subCategory.length > 0) {
+        productsCopy = productsCopy.filter((item) =>
+          item.subCategory.some((sub) => subCategory.includes(sub.name))
+        );
+      }
+
+      setFilterProducts(productsCopy);
+    }
+    setLoading(false);
   };
 
   const sortProduct = () => {
     setLoading(true);
-    let fpCopy = filterProducts.slice();
-    switch (sortType) {
-      case "low-high":
-        setFilterProducts(fpCopy.sort((a, b) => a.price - b.price));
-        break;
+    if (filterProducts != null) {
+      let fpCopy = filterProducts.slice();
+      switch (sortType) {
+        case "low-high":
+          setFilterProducts(fpCopy.sort((a, b) => a.price - b.price));
+          break;
 
-      case "high-low":
-        setFilterProducts(fpCopy.sort((a, b) => b.price - a.price));
-        break;
+        case "high-low":
+          setFilterProducts(fpCopy.sort((a, b) => b.price - a.price));
+          break;
 
-      default:
-        applyFilter();
-        break;
+        default:
+          applyFilter();
+          break;
+      }
     }
   };
 
@@ -99,23 +105,29 @@ const Collection = () => {
     setSubCategoryData(response.data.data.subCategories);
   };
   useEffect(() => {
-    if (!Array.isArray(products) || products.length === 0) {
+    if (products == null) {
+      setLoading(true);
       getProduct();
+    } else {
+      getFilter();
+      setFilterProducts(products);
     }
-    getFilter();
-    setFilterProducts(products);
   }, [products, getProduct]);
 
   useEffect(() => {
     applyFilter();
-    setLoading(false);
   }, [category, subCategory, search, showSearch]);
 
   useEffect(() => {
     sortProduct();
     setLoading(false);
   }, [sortType]);
+  // useEffect(() => {
+  //   applyFilter();
+  // }, [filterProducts]);
+
   if (loading) return <Loading />;
+  if (filterProducts == null) return <Loading />;
   return (
     <div className="flex flex-col mt-[80px] sm:flex-row gap-1 sm:gap-10 pt-10 border-t px-4 sm:px-[5vw] md:px-[7vw] lg:px-[9vw]">
       {/* filter options */}

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, useLocation } from "react-router-dom";
 import Home from "./pages/Home";
 import Collection from "./pages/Collection";
 import About from "./pages/About";
@@ -19,11 +19,18 @@ import Otp from "./pages/Otp";
 import ResetPassword from "./pages/ResetPassword";
 import AccountPage from "./pages/AccountPage";
 import axios from "axios";
+import OrderStatus from "./pages/OrderStatus";
+import Payment from "./pages/Payment";
+import OrderDetail from "./pages/OrderDetail";
 
 export const backendUrl = import.meta.env.VITE_BACKEND_URL;
+export const MIDTRANS_APP = import.meta.env.VITE_MIDTRANS_APP_URL;
+export const MIDTRANS_CLIENT = import.meta.env.VITE_MIDTRANS_CLIENT_KEY;
 const App = () => {
   const [isVisible, setIsVisible] = useState(true);
   const [isNavbarFixed, setIsNavbarFixed] = useState(false);
+  const [token, setToken] = useState(localStorage.getItem("sessions"));
+  const location = useLocation();
   const getToken = async () => {
     const fetchedToken = await fetchToken();
     setToken(fetchedToken);
@@ -31,38 +38,61 @@ const App = () => {
   const fetchToken = async () => {
     let result = null;
 
-    if (localStorage.getItem("token") !== null) {
+    if (localStorage.getItem("sessions") !== null) {
       try {
         let response = await axios.get(
           backendUrl + "/v1/api/check-token",
 
           {
             headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
+              Authorization: `Bearer ${localStorage.getItem("sessions")}`,
             },
           }
         );
         let data = response.data;
         if (data.success) {
-          return localStorage.getItem("token");
+          result = localStorage.getItem("sessions");
         }
       } catch (error) {
         console.log("error dari fetch token", error);
-        // localStorage.removeItem("token");
+        // localStorage.removeItem("sessions");
       }
     }
     return result;
   };
 
-  const [token, setToken] = useState(null);
   useEffect(() => {
     getToken();
   }, []); // Empty dependency array to run once when the component mounts
   useEffect(() => {
     if (token) {
-      localStorage.setItem("token", token);
+      localStorage.setItem("sessions", token);
+      getToken();
     }
   }, [token]);
+  // useEffect(() => {
+  //   if (token) {
+  //     localStorage.setItem("sessions", token);
+  //   }
+  // }, [token]);
+  useEffect(() => {
+    // const fetchPaths = ["/", "/collection", "/product", "/cart"];
+    // const isProductPage = location.pathname.startsWith("/product/");
+    // const isCartPage = location.pathname.startsWith("/cart/");
+    // if (fetchPaths.includes(location.pathname) || isProductPage) {
+    //   getProduct();
+    // }
+    // if (fetchPaths.includes(location.pathname) || isCartPage) {
+    //   getChart();
+    // }
+    if (
+      !location.pathname.startsWith("/login") ||
+      !location.pathname.startsWith("/profile")
+    ) {
+      sessionStorage.removeItem("activeTab");
+    }
+  }, [location.pathname]); // akan re-fetch saat path berubah
+
   // const responseMessage = (response) => {
   //   console.log(response);
   // };
@@ -116,12 +146,20 @@ const App = () => {
         <Route path="/cart" element={<Cart token={token} />} />
         <Route
           path="/login"
-          element={<Login setToken={setToken} token={token} />}
+          element={
+            <Login setToken={setToken} token={token} getToken={getToken} />
+          }
         />
-        <Route path="/place-order" element={<PlaceOrder token={token} />} />
-        <Route path="/orders" element={<Orders token={token} />} />
+        <Route path="/checkout" element={<PlaceOrder token={token} />} />
+        <Route path="/list/order" element={<Orders token={token} />} />
+        <Route
+          path="/list/order/:orderId"
+          element={<OrderDetail token={token} />}
+        />
+        <Route path="/order-status/" element={<OrderStatus token={token} />} />
+        <Route path="/payment/" element={<Payment token={token} />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/profile" element={<AccountPage />} />
+        <Route path="/profile" element={<AccountPage token={token} />} />
       </Routes>
       <Footer />
     </div>

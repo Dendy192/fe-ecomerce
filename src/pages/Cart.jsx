@@ -217,7 +217,7 @@ const Cart = ({ token }) => {
   useEffect(() => {}, [cartData]);
 
   useEffect(() => {
-    if (!token && !localStorage.getItem("token")) {
+    if (!token && localStorage.getItem("sessions") == null) {
       navigate("/login");
     }
   }, [token]);
@@ -449,10 +449,12 @@ const Cart = ({ token }) => {
             <CartTotal />
             <div className="w-full text-end">
               <button
-                onClick={() => navigate("/place-order")}
+                onClick={() =>
+                  navigate("/checkout", { state: { fromCart: true } })
+                }
                 className="bg-black text-white text-sm my-8 px-8 py-3"
               >
-                PROCCESS TO CHECKOUT
+                PROCESS TO CHECKOUT
               </button>
             </div>
           </div>
