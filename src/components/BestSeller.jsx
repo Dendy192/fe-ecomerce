@@ -54,6 +54,7 @@ const BestSeller = () => {
             name={item.name}
             image={item.img}
             price={item.price}
+            rating={item.avgRating}
           />
         ))}
       </div>

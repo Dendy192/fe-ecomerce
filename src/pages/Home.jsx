@@ -17,8 +17,8 @@ const Home = () => {
       <Hero setHeroLoading={setHeroLoading} />
       <LatestCollection setLatesLoading={setLatesLoading} />
       <BestSeller />
-      <OurPolicy />
-      <NewslatterBox />
+      {/* <OurPolicy /> */}
+      {/* <NewslatterBox /> */}
     </div>
   );
 };

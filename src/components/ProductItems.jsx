@@ -4,8 +4,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { backendUrl } from "../App";
 import PriceFormatter from "./PriceFormatter";
 import Loading from "./Loading";
+import StarsRatingDisplay from "./StarsRatingDisplay";
 
-const ProductItems = ({ id, image, name, price }) => {
+const ProductItems = ({ id, image, name, price, rating }) => {
   const { currency } = useContext(ShopContext);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -33,7 +34,11 @@ const ProductItems = ({ id, image, name, price }) => {
           alt=""
         />
       </div>
-      <p className="pt-3 pb-1 text-sm">{name}</p>
+      <div className="pb-1 pt-1">
+        <StarsRatingDisplay rating={rating} size="small" />
+        <p className=" text-sm">{name}</p>
+      </div>
+
       <p className="text-sm font-medium">
         <PriceFormatter price={price} />
       </p>

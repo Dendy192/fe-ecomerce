@@ -81,6 +81,7 @@ const LatestCollection = ({ setLatesLoading }) => {
               image={item.img}
               name={item.name}
               price={item.price}
+              rating={item.avgRating}
             />
           </SwiperSlide>
         ))}

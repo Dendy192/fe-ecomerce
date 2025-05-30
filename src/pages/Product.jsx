@@ -10,6 +10,7 @@ import PriceFormatter from "../components/PriceFormatter";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCircleMinus, faCirclePlus } from "@fortawesome/free-solid-svg-icons";
 import { toast } from "react-toastify";
+import StarsRatingDisplay from "../components/StarsRatingDisplay";
 
 const Product = ({ token }) => {
   const { productId } = useParams();
@@ -238,12 +239,10 @@ const Product = ({ token }) => {
         <div className="flex-1">
           <h1 className="font-medium text-2xl mt-2">{productData.name}</h1>
           <div className="flex items-center gap-1 mt-2">
-            <img src={assets.star_icon} alt="" className="w-3 5" />
-            <img src={assets.star_icon} alt="" className="w-3 5" />
-            <img src={assets.star_icon} alt="" className="w-3 5" />
-            <img src={assets.star_icon} alt="" className="w-3 5" />
-            <img src={assets.star_dull_icon} alt="" className="w-3 5" />
-            <p className="pl-2">(122)</p>
+            <StarsRatingDisplay rating={productData.avgRating} />
+            {productData.ratings > 0 && (
+              <p className="pl-2">({productData.avgRating})</p>
+            )}
           </div>
           <p className="mt-5 text-3xl font-medium">
             <PriceFormatter price={productData.price} />
@@ -373,7 +372,11 @@ const Product = ({ token }) => {
       <div className="mt-20">
         <div className="flex">
           <b className="border px-5 py-3 text-sm"> Description</b>
-          <p className="border px-5 py-3 text-sm"> Reviews (122)</p>
+          <p className="border px-5 py-3 text-sm">
+            {" "}
+            Reviews
+            {productData.ratings > 0 && productData.ratings}
+          </p>
         </div>
         <div className="flex flex-col gap-4 border px-6 py-6 text-sm text-gray-500">
           <p>{productData.desc ? productData.desc : "No Description"}</p>
