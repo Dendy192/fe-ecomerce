@@ -56,95 +56,97 @@ const Login = ({ setToken, token, getToken }) => {
   const onSubmitHandler = async (event) => {
     event.preventDefault();
     setLoading(true);
-    // if (!captchaToken) {
-    //   if (!toast.isActive(toastIdError.current)) {
-    //     toastIdError.current = toast.error("Please complete the CAPTCHA");
-    //   }
-    // } else {
-    if (currentState === "Login") {
-      // let responseCaptcha = await axios.post(url + "/verification-captcha", {
-      //   token: captchaToken,
-      // });
-      // if (responseCaptcha.data.success) {
-      //   setCaptchaRes(responseCaptcha.data);
-      // }
-      // if (responseCaptcha.data.success || capthaRes) {
-      const emailError = !validateEmail(email)
-        ? "Please enter a valid email address"
-        : "";
-      const passwordError =
-        password === "" || password === null ? "Password must be filled" : "";
-      if (!emailError && !passwordError) {
-        let loginBody = {
-          email: email,
-          password: password,
-        };
-        let loginResponse = await axios.post(url + "/login", loginBody);
+    if (!captchaToken) {
+      if (!toast.isActive(toastIdError.current)) {
+        toastIdError.current = toast.error("Please complete the CAPTCHA");
+      }
+    } else {
+      if (currentState === "Login") {
+        let responseCaptcha = await axios.post(url + "/verification-captcha", {
+          token: captchaToken,
+        });
+        if (responseCaptcha.data.success) {
+          setCaptchaRes(responseCaptcha.data);
+        }
+        if (responseCaptcha.data.success || capthaRes) {
+          const emailError = !validateEmail(email)
+            ? "Please enter a valid email address"
+            : "";
+          const passwordError =
+            password === "" || password === null
+              ? "Password must be filled"
+              : "";
+          if (!emailError && !passwordError) {
+            let loginBody = {
+              email: email,
+              password: password,
+            };
+            let loginResponse = await axios.post(url + "/login", loginBody);
 
-        if (loginResponse.data.success) {
-          let token = loginResponse.data.data.mini_sessions;
-          localStorage.setItem("sessions", token);
-          setToken(token);
-          navigate("/");
+            if (loginResponse.data.success) {
+              let token = loginResponse.data.data.mini_sessions;
+              localStorage.setItem("sessions", token);
+              setToken(token);
+              navigate("/");
+            } else {
+              if (!toast.isActive(toastIdError.current)) {
+                toastIdError.current = toast.error(
+                  "Email / password incorrect. Please Try Again"
+                );
+              }
+            }
+          } else {
+            setErrors({ email: emailError, password: passwordError });
+          }
         } else {
           if (!toast.isActive(toastIdError.current)) {
             toastIdError.current = toast.error(
-              "Email / password incorrect. Please Try Again"
+              "CAPTCHA verification failed. Please Try Again"
             );
           }
         }
       } else {
-        setErrors({ email: emailError, password: passwordError });
-      }
-      // } else {
-      //   if (!toast.isActive(toastIdError.current)) {
-      //     toastIdError.current = toast.error(
-      //       "CAPTCHA verification failed. Please Try Again"
-      //     );
-      //   }
-      // }
-    } else {
-      const emailError = !validateEmail(email)
-        ? "Please enter a valid email address"
-        : "";
-      const passwordError = !validatePassword(password)
-        ? "Password must be at least 8 characters long, include an uppercase letter, a number, and a special character"
-        : "";
+        const emailError = !validateEmail(email)
+          ? "Please enter a valid email address"
+          : "";
+        const passwordError = !validatePassword(password)
+          ? "Password must be at least 8 characters long, include an uppercase letter, a number, and a special character"
+          : "";
 
-      const nameError =
-        name === "" || name === null ? "Name must be filled" : "";
+        const nameError =
+          name === "" || name === null ? "Name must be filled" : "";
 
-      if (!emailError && !passwordError && !nameError) {
-        // check email first in already register or no
-        let body = {
-          email: email,
-          name: name,
-        };
-        try {
-          let response = await axios.post(url + "/generate", body);
-          if (response.data.success) {
-            updateFormData({ email, password, name });
-            navigate("/verification");
-          } else {
-            console.log("di sini: ", response.data.data);
-            if (!toast.isActive(toastId.current)) {
-              toastId.current = toast.warn(response.data.data);
+        if (!emailError && !passwordError && !nameError) {
+          // check email first in already register or no
+          let body = {
+            email: email,
+            name: name,
+          };
+          try {
+            let response = await axios.post(url + "/generate", body);
+            if (response.data.success) {
+              updateFormData({ email, password, name });
+              navigate("/verification");
+            } else {
+              console.log("di sini: ", response.data.data);
+              if (!toast.isActive(toastId.current)) {
+                toastId.current = toast.warn(response.data.data);
+              }
+            }
+          } catch (error) {
+            if (!toast.isActive(toastIdError.current)) {
+              toastIdError.current = toast.error(error);
             }
           }
-        } catch (error) {
-          if (!toast.isActive(toastIdError.current)) {
-            toastIdError.current = toast.error(error);
-          }
+        } else {
+          setErrors({
+            name: nameError,
+            email: emailError,
+            password: passwordError,
+          });
         }
-      } else {
-        setErrors({
-          name: nameError,
-          email: emailError,
-          password: passwordError,
-        });
       }
     }
-    // }
     setLoading(false);
   };
   const [user, setUser] = useState([]);

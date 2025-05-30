@@ -19,6 +19,9 @@ a.active hr {
   font-weight: 400;
   font-style: normal;
 }
+.leaflet-container {
+  z-index: 0 !important;
+}
 
 /* ::-webkit-scrollbar {
   display: none;

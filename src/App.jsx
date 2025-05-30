@@ -22,6 +22,7 @@ import axios from "axios";
 import OrderStatus from "./pages/OrderStatus";
 import Payment from "./pages/Payment";
 import OrderDetail from "./pages/OrderDetail";
+import MapPicker from "./pages/MapPicker";
 
 export const backendUrl = import.meta.env.VITE_BACKEND_URL;
 export const MIDTRANS_APP = import.meta.env.VITE_MIDTRANS_APP_URL;
@@ -137,6 +138,7 @@ const App = () => {
       <Navbar token={token} setToken={setToken} />
       <SearchBar />
       <Routes>
+        <Route path="/test" element={<MapPicker />} />
         <Route path="/" element={<Home />} />
         <Route path="/verification" element={<Otp setToken={setToken} />} />
         <Route path="/collection" element={<Collection />} />

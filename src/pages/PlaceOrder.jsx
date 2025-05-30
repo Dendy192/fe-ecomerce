@@ -29,12 +29,81 @@ const PlaceOrder = ({ token }) => {
   const [discountTotal, setDiscountTotal] = useState(0);
   const [totalPrice, setTotalPrice] = useState(0);
   const { promoChoose, setPromoChoose } = useState([]);
-
+  const [selectedOption, setSelectedOption] = useState(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  const [courierData, setCourierData] = useState([]);
+  const [insurance, setInsurance] = useState(false);
+  const [insuranceFee, setInsuranceFee] = useState(0);
+  const groupedOptions = [
+    {
+      group: "Fruits",
+      items: [
+        { title: "Apple", description: "Sweet red fruit", price: "$1.00" },
+        { title: "Banana", description: "Yellow and soft", price: "$0.50" },
+      ],
+    },
+    {
+      group: "Vegetables",
+      items: [
+        { title: "Carrot", description: "Orange root veggie", price: "$0.70" },
+        { title: "Lettuce", description: "Green and leafy", price: "$1.20" },
+      ],
+    },
+    {
+      group: "Vegetables",
+      items: [
+        { title: "Carrot", description: "Orange root veggie", price: "$0.70" },
+        { title: "Lettuce", description: "Green and leafy", price: "$1.20" },
+      ],
+    },
+    {
+      group: "Vegetables",
+      items: [
+        { title: "Carrot", description: "Orange root veggie", price: "$0.70" },
+        { title: "Lettuce", description: "Green and leafy", price: "$1.20" },
+      ],
+    },
+    {
+      group: "Vegetables",
+      items: [
+        { title: "Carrot", description: "Orange root veggie", price: "$0.70" },
+        { title: "Lettuce", description: "Green and leafy", price: "$1.20" },
+      ],
+    },
+    {
+      group: "Vegetables",
+      items: [
+        { title: "Carrot", description: "Orange root veggie", price: "$0.70" },
+        { title: "Lettuce", description: "Green and leafy", price: "$1.20" },
+      ],
+    },
+  ];
+  const handleSelect = (item) => {
+    setSelectedOption(item);
+    setFee(item.price);
+    setIsOpen(false);
+  };
   // const { snapEmbed } = useSnap();
   const header = {
     headers: {
       Authorization: `Bearer ${localStorage.getItem("sessions")}`,
     },
+  };
+
+  const getCourier = async () => {
+    try {
+      let body = {
+        addressId: addressMain.id,
+        chartId: cartItems.id,
+      };
+      let response = await axios.post(url + "/shipment/rate", body, header);
+      if (response.data.success) {
+        setCourierData(response.data.data);
+      }
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const getAddress = async () => {
@@ -45,6 +114,7 @@ const PlaceOrder = ({ token }) => {
         setAddress(response.data.data.addresses);
         setAddressMain(response.data.data.addresses[0]);
       } else {
+        toast.warn("Please Add Address First");
         navigate("/profile");
       }
     } catch (error) {
@@ -55,45 +125,51 @@ const PlaceOrder = ({ token }) => {
     try {
       if (paymentShow) return;
       setLoading(true);
-      let deliveryName = "JNE";
-      let old = parseInt(subTotal) + parseInt(fee);
-      let body = {
-        cartId: cartItems.id,
-        promo: promoChoose ? promoChoose : [],
-        oldPrice: subTotal,
-        finalPrice: totalPrice,
-        addressId: addressMain.id,
-        feeDelivery: fee,
-        deliveryName: deliveryName,
-      };
-      console.log(body);
-      let response = await axios.post(url + "/order", body, header);
-      if (response.data.success) {
-        getCartAmount();
-        let data = response.data.data;
-        window.location.href = data.url;
-        // setPaymentShow(true);
-        // setTimeout(() => {
-        //   snapEmbed(data.api.token, "snap-container", {
-        //     onSuccess: (result) => {
-        //       console.log("Payment Success:", result);
-        //       navigate(`/order-status?transaction_id=${response.data.id}`);
-        //       setPaymentShow(false);
-        //     },
-        //     onPending: (result) => {
-        //       console.log("Payment Pending:", result);
-        //       navigate(`/order-status?transaction_id=${response.data.id}`);
-        //       setPaymentShow(false);
-        //     },
-        //     onClose: () => {
-        //       navigate(`/order-status?transaction_id=${response.data.id}`);
-        //       setPaymentShow(false);
-        //     },
-        //   });
-        // }, 500); // Small delay to ensure Snap.js is ready
+      if (selectedOption == null) {
+        toast.error("Please Choose Courier");
       } else {
-        toast.error(response.data.data);
-        setPaymentShow(false);
+        let deliveryName = "JNE";
+        let old = parseInt(subTotal) + parseInt(fee);
+        let body = {
+          cartId: cartItems.id,
+          promo: promoChoose ? promoChoose : [],
+          oldPrice: subTotal,
+          finalPrice: totalPrice,
+          addressId: addressMain.id,
+          feeDelivery: fee,
+          deliveryName: selectedOption.courier_code,
+          deliveryService: selectedOption.courier_service_code,
+          insurance: insurance,
+        };
+        console.log(body);
+        let response = await axios.post(url + "/order", body, header);
+        if (response.data.success) {
+          getCartAmount();
+          let data = response.data.data;
+          window.location.href = data.url;
+          // setPaymentShow(true);
+          // setTimeout(() => {
+          //   snapEmbed(data.api.token, "snap-container", {
+          //     onSuccess: (result) => {
+          //       console.log("Payment Success:", result);
+          //       navigate(`/order-status?transaction_id=${response.data.id}`);
+          //       setPaymentShow(false);
+          //     },
+          //     onPending: (result) => {
+          //       console.log("Payment Pending:", result);
+          //       navigate(`/order-status?transaction_id=${response.data.id}`);
+          //       setPaymentShow(false);
+          //     },
+          //     onClose: () => {
+          //       navigate(`/order-status?transaction_id=${response.data.id}`);
+          //       setPaymentShow(false);
+          //     },
+          //   });
+          // }, 500); // Small delay to ensure Snap.js is ready
+        } else {
+          toast.error(response.data.data);
+          setPaymentShow(false);
+        }
       }
     } catch (error) {
       console.log(error);
@@ -105,6 +181,13 @@ const PlaceOrder = ({ token }) => {
   const totalPriceChange = async () => {
     let result = parseInt(subTotal) - parseInt(discountTotal) + parseInt(fee);
     setTotalPrice(result);
+  };
+
+  const insuranceOnChange = async (e) => {
+    setInsurance(e.target.checked);
+
+    let feeInsurance = parseInt(subTotal) * 0.05;
+    setInsuranceFee(e.target.checked ? feeInsurance : 0);
   };
   // useEffect(() => {
   //   if (!location.state?.fromCart) {
@@ -146,6 +229,17 @@ const PlaceOrder = ({ token }) => {
   useEffect(() => {
     totalPriceChange();
   }, [fee, discountTotal]);
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   //!todo validation token, get address, get chart, get product, get shipper, (promo coming BE , FE, BO), (ORDER, BE, BO)
   useEffect(() => {
@@ -165,7 +259,6 @@ const PlaceOrder = ({ token }) => {
   useEffect(() => {
     intervalRef.current = setInterval(() => {
       if (cartItems == null) {
-        console.log("test");
         if (count === 3) {
           navigate("/");
         } else {
@@ -178,6 +271,15 @@ const PlaceOrder = ({ token }) => {
 
     return () => clearInterval(intervalRef.current);
   }, [count]);
+
+  useEffect(() => {
+    if (addressMain != null) {
+      getCourier();
+    }
+  }, [addressMain]);
+  useEffect(() => {
+    console.log(courierData);
+  }, [courierData]);
   if (loading) return <Loading />;
   return (
     <>
@@ -204,9 +306,9 @@ const PlaceOrder = ({ token }) => {
                     {`${addressMain.alamat}, ${addressMain.kelurahan.label}, ${addressMain.kecamatan.label}, ${addressMain.kota.label}, ${addressMain.provinsi.label}, ${addressMain.phone} `}
                   </p>
                   <div className="flex gap-4 mt-4">
-                    <button className="bg-gray-200 text-gray-700 px-4 py-2 rounded">
+                    {/* <button className="bg-gray-200 text-gray-700 px-4 py-2 rounded">
                       Change Address
-                    </button>
+                    </button> */}
                     {/* <button className="bg-gray-200 text-gray-700 px-4 py-2 rounded">
                 Kirim ke Beberapa Alamat
               </button> */}
@@ -253,30 +355,78 @@ const PlaceOrder = ({ token }) => {
                 {/* Right Section: Pilih Pengiriman */}
                 <div className="bg-white p-6 rounded-lg shadow">
                   <h2 className="text-lg font-bold mb-4 text-gray-800">
-                    Delivery
+                    Courier
                   </h2>
-                  <button className="bg-gray-200 text-gray-700 px-4 py-2 rounded w-full">
-                    Choose Delivery
-                  </button>
-                  {/* <img
-              src="https://api.sandbox.midtrans.com/v2/qris/17e04ffb-c40d-439a-8893-bbfb0e699910/qr-code"
-              alt="QR"
-              className="w-16 h-16 rounded"
-            /> */}
-                  {/* <div className="mt-6">
-              <label
-                htmlFor="notes"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Catatan untuk Toko (Opsional)
-              </label>
-              <input
-                type="text"
-                id="notes"
-                placeholder="Tambahkan catatan, misalnya: Jangan terlalu pedas"
-                className="w-full p-2 border rounded text-gray-700"
-              />
-            </div> */}
+                  <div
+                    ref={dropdownRef}
+                    className="relative max-w-md mx-auto mt-8"
+                  >
+                    <div
+                      className="border border-gray-300 rounded-md p-3 cursor-pointer bg-white shadow-sm"
+                      onClick={() => setIsOpen(!isOpen)}
+                    >
+                      <div className="text-gray-700">
+                        {selectedOption ? (
+                          <div className="flex justify-between">
+                            <span>
+                              {selectedOption.courier_name} -{" "}
+                              {selectedOption.courier_service_name}
+                            </span>
+                            <span className="text-sm text-gray-500">
+                              <PriceFormatter price={selectedOption.price} />
+                            </span>
+                          </div>
+                        ) : (
+                          "Choose Courier"
+                        )}
+                      </div>
+                    </div>
+
+                    {isOpen && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-80 overflow-y-auto">
+                        {courierData.map((courier, index) => (
+                          <div key={index} className="border-b last:border-b-0">
+                            <div className="bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-700 uppercase">
+                              {courier.company}
+                            </div>
+                            {courier.data.map((item, index) => (
+                              <div
+                                key={index}
+                                className="px-4 py-2 cursor-pointer hover:bg-gray-50"
+                                onClick={() => handleSelect(item)}
+                              >
+                                <div className="flex justify-between">
+                                  <span className="font-medium text-gray-800">
+                                    {item.courier_name} -{" "}
+                                    {item.courier_service_name}
+                                  </span>
+                                  <span className="text-sm text-gray-500">
+                                    {item.description}
+                                  </span>
+                                </div>
+                                <div className="text-right text-sm text-green-600">
+                                  <PriceFormatter price={item.price} />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {selectedOption && (
+                    <div className="flex gap-2 mt-2 max-w-md mx-auto">
+                      <input
+                        type="checkbox"
+                        id="insurance"
+                        checked={insurance}
+                        onChange={insuranceOnChange}
+                      />
+                      <label className="cursor-pointer" htmlFor="insurance">
+                        Delivery Insurance
+                      </label>
+                    </div>
+                  )}
                 </div>
 
                 {/* Order Summary: Full Width */}
@@ -295,6 +445,13 @@ const PlaceOrder = ({ token }) => {
                         <span>Delivery Cost</span>
 
                         <PriceFormatter price={fee} />
+                      </div>
+                    )}
+                    {insuranceFee != 0 && (
+                      <div className="flex justify-between mb-2">
+                        <span>Delivery Insurance</span>
+
+                        <PriceFormatter price={insuranceFee} />
                       </div>
                     )}
                     {discountTotal != 0 && (

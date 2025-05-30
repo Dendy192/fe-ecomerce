@@ -34,6 +34,7 @@ const Cart = ({ token }) => {
   const [confirmationModal, setConfirmationModal] = useState(false);
   const openModal = () => setConfirmationModal(true);
   const closeModal = () => setConfirmationModal(false);
+
   const onSubmitConfirmationModal = async (e, cartItemId) => {
     e.preventDefault();
     setLoading(true);
@@ -196,7 +197,7 @@ const Cart = ({ token }) => {
 
     setTimeout(() => {
       setLoading(false);
-    }, 1000);
+    }, 1500);
   };
   useEffect(() => {
     // Fetch products only if not already loaded
