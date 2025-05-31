@@ -7,13 +7,14 @@ const Input = ({
   error,
   props,
   onChange,
+  width = "w-full",
   className = "",
 }) => {
   return (
     <>
       <input
         type={type}
-        className={`w-full px-3 py-2 border ${
+        className={`${width} px-3 py-2 border ${
           error ? "border-red-600" : "border-gray-800"
         }`}
         placeholder={placeholder}

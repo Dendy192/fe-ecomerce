@@ -14,6 +14,7 @@ import StarsRatingDisplay from "../components/StarsRatingDisplay";
 
 const Product = ({ token }) => {
   const { productId } = useParams();
+  const url = backendUrl + "/v1/api/products";
   const { products, addToCart, getProduct, navigate } = useContext(ShopContext);
   const [productData, setProductData] = useState(false);
   const [image, setImage] = useState("");
@@ -26,6 +27,8 @@ const Product = ({ token }) => {
   const [sizeData, setSizeData] = useState(null);
   const toastId = useRef(null);
   const toastIdError = useRef(null);
+  const [currentState, setCurrentState] = useState("desc");
+  const [review, setReview] = useState([]);
   const sizeTemplate = [
     {
       size: "S",
@@ -143,6 +146,17 @@ const Product = ({ token }) => {
     }
   };
 
+  const getRating = async () => {
+    try {
+      setIsLoading(true);
+      let response = await axios.get(url + "/rating/" + productId);
+      setReview(response.data.data);
+    } catch (error) {
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     // Fetch products only if not already loaded
     if (products == null) {
@@ -155,6 +169,9 @@ const Product = ({ token }) => {
   useEffect(() => {
     fetchProductData();
   }, [productId, products]);
+  useEffect(() => {
+    getRating();
+  }, []);
   useEffect(() => {}, [
     productData,
     image,
@@ -371,16 +388,64 @@ const Product = ({ token }) => {
       {/* description and review section */}
       <div className="mt-20">
         <div className="flex">
-          <b className="border px-5 py-3 text-sm"> Description</b>
-          <p className="border px-5 py-3 text-sm">
-            {" "}
-            Reviews
-            {productData.ratings > 0 && productData.ratings}
-          </p>
+          <button
+            className={`border px-5 py-3 text-sm ${
+              currentState === "desc"
+                ? "text-black border-b-2 border-black"
+                : "text-gray-500"
+            }`}
+            onClick={() => setCurrentState("desc")}
+          >
+            Description
+          </button>
+          <button
+            className={`border  px-5 py-3 text-sm ${
+              currentState === "rate"
+                ? "text-black border-b-2 border-black"
+                : "text-gray-500"
+            }`}
+            onClick={() => setCurrentState("rate")}
+          >
+            <p> Reviews ({productData.ratings})</p>
+          </button>
         </div>
-        <div className="flex flex-col gap-4 border px-6 py-6 text-sm text-gray-500">
-          <p>{productData.desc ? productData.desc : "No Description"}</p>
-        </div>
+        {currentState === "desc" && (
+          <div className="flex flex-col gap-4 border px-6 py-6 text-sm text-gray-500">
+            <p>{productData.desc ? productData.desc : "No Description"}</p>
+          </div>
+        )}
+        {currentState === "rate" && (
+          <div className="flex flex-col gap-4 border px-6 py-6 text-sm text-gray-500 max-h-80 overflow-y-auto">
+            {productData.ratings === 0 ? (
+              "No Review"
+            ) : (
+              <>
+                {review.map((item, index) => {
+                  return (
+                    <div
+                      key={index}
+                      className="border-b last:border-b-0 px-4 grid grid-cols-3 items-center gap-2  py-4  text-center text-xs sm:text-base"
+                    >
+                      <div className="text-left">
+                        <p className="text-sm font-medium">{item.userName}</p>
+                        <p className="text-xs"> {item.date}</p>
+                      </div>
+
+                      <div>
+                        <p className="font-medium underline ">{item.product}</p>
+                        <p className=""> {item.review}</p>
+                      </div>
+                      <div className="flex items-center  relative">
+                        <StarsRatingDisplay rating={item.rating} /> (
+                        {item.rating})
+                      </div>
+                    </div>
+                  );
+                })}
+              </>
+            )}
+          </div>
+        )}
       </div>
       {/* display rolated product */}
       <RelatedProducts

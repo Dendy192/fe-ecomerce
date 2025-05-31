@@ -2,11 +2,12 @@ import { faFileLines, faMoneyBill1 } from "@fortawesome/free-regular-svg-icons";
 import {
   faArrowLeft,
   faBoxOpen,
+  faFloppyDisk,
   faStar,
   faTruckFast,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Cards from "../components/Cards";
 import Button from "../components/Button";
 import { useNavigate, useParams } from "react-router-dom";
@@ -15,6 +16,14 @@ import Title from "../components/Title";
 import { backendUrl } from "../App";
 import axios from "axios";
 import Loading from "../components/Loading";
+import Modal from "../components/Modal";
+import StarRating from "../components/StarRating";
+import Rating from "@mui/material/Rating";
+import StarIcon from "@mui/icons-material/Star";
+import TextArea from "../components/TextArea";
+import Row from "../components/Row";
+import Col from "../components/Col";
+import { toast } from "react-toastify";
 const OrderDetail = ({ token }) => {
   const url = backendUrl + "/v1/api/order";
   const [activeStep, setActiveStep] = useState(0);
@@ -24,6 +33,18 @@ const OrderDetail = ({ token }) => {
   const [activeStep1, setActiveStep1] = useState(0);
   const [mainData, setMainData] = useState([]);
   const [steps, setSteps] = useState([]);
+  const [modal, setModal] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [hover, setHover] = useState(-1);
+  const [review, setReview] = useState("");
+
+  const openModal = () => {
+    setModal(true);
+  };
+
+  const closeModal = () => {
+    setModal(false);
+  };
   const steps1Tmp = [
     {
       time: "23-03-2025 12:37",
@@ -99,12 +120,57 @@ const OrderDetail = ({ token }) => {
       icon: <FontAwesomeIcon icon={faBoxOpen} />,
     },
     {
-      id: "rated",
+      id: "complete",
       label: "Order Rated",
       date: "",
       icon: <FontAwesomeIcon icon={faStar} />,
     },
   ];
+  const onSubmitReview = async () => {
+    setLoading(true);
+    try {
+      if (rating == 0 || rating == null) {
+        toast.warning("Please Add Review");
+      } else {
+        console.log(rating);
+        let tmp = [];
+        mainData.items.map((item, index) => {
+          const productData = item.product;
+          let tmp1 = {
+            productId: productData.id,
+            rating: rating,
+            review: review,
+          };
+          tmp.push(tmp1);
+        });
+        let body = {
+          orderId: orderId,
+          ratings: tmp,
+        };
+        let response = await axios.post(url + "/rating", body, header);
+        if (response.data.success) {
+          fetchOrder();
+          toast.success(response.data.data);
+          closeModal();
+        } else {
+          toast.error(response.data.data);
+        }
+      }
+    } catch (error) {
+    } finally {
+      setLoading(false);
+    }
+  };
+  const generateInvoice = async () => {
+    try {
+      let body = {
+        id: orderId,
+      };
+      await axios.post(url + "/generate", body, header);
+    } catch (error) {
+      console.error(error.message);
+    }
+  };
   const fetchOrder = async () => {
     setLoading(true);
     try {
@@ -112,7 +178,7 @@ const OrderDetail = ({ token }) => {
 
       if (response.data.success) {
         let data = response.data.data;
-        console.log(data);
+
         setMainData(data);
 
         let history = data.history;
@@ -127,11 +193,9 @@ const OrderDetail = ({ token }) => {
           // Check if ID already exists in mappingData
           if (!mappingData.some((item) => item.status === data2.status)) {
             mappingData.push(data2);
-          } else {
-            console.log(data2);
           }
         });
-        console.log(mappingData);
+
         let updateSteps = stepsTmp.map((step) => {
           const match = mappingData.find((data) => data.status === step.id);
           return match ? { ...step, date: formatDate(match.updateDate) } : step;
@@ -201,8 +265,22 @@ const OrderDetail = ({ token }) => {
               <span className="text-blue-500">{mainData.message}</span>
             </p>
           </div>
-          <div>
-            <Button variant="dark" className="text-[8px] md:text-xs lg:text-sm">
+          <div className="flex flex-row justify-end items-center gap-2">
+            {mainData.status == "receive" && (
+              <Button
+                variant="warning"
+                className="text-[8px] md:text-xs lg:text-sm"
+                onClick={() => openModal()}
+              >
+                Review
+              </Button>
+            )}
+
+            <Button
+              variant="dark"
+              className="text-[8px] md:text-xs lg:text-sm"
+              onClick={() => generateInvoice()}
+            >
               View Invoice
             </Button>
           </div>
@@ -322,11 +400,11 @@ const OrderDetail = ({ token }) => {
                           index === 0 ? "text-green-600" : "text-gray-700"
                         }`}
                       >
-                        {step.status}
-                      </p>
-                      <p className="text-sm text-gray-500">
                         {step.description}
                       </p>
+                      {/* <p className="text-sm text-gray-500">
+                        {step.description}
+                      </p> */}
                     </div>
                   </div>
                 ))}
@@ -395,15 +473,7 @@ const OrderDetail = ({ token }) => {
                   <p className="flex-1 text-end">Discount</p>
                   <p className=" text-center px-1 py-0">:</p>
                   <p className="flex-1 text-end">
-                    {!mainData.promo ? (
-                      <>
-                        <PriceFormatter price={"0"} />
-                      </>
-                    ) : (
-                      <>
-                        - <PriceFormatter price={mainData.promoTotal} />
-                      </>
-                    )}
+                    - <PriceFormatter price={mainData.promoTotal} />
                   </p>
                 </div>
                 <hr />
@@ -419,6 +489,77 @@ const OrderDetail = ({ token }) => {
           </div>
         </div>
       </Cards>
+      <Modal
+        isOpen={modal}
+        onClose={closeModal}
+        closeOnOutsideClick={false}
+        header="Add Review"
+      >
+        <div className="pt-8">
+          {mainData.items.map((item, index) => {
+            const productData = item.product;
+            const variant = productData.variants.find(
+              (variant1) => variant1.id == item.variantId
+            );
+
+            return (
+              <div
+                key={index}
+                className="grid grid-cols-2 font-medium text-center text-base border-y"
+              >
+                <div className="flex items-center gap-4">
+                  <img
+                    src={`${backendUrl}/api/image/${productData.img[0]}`}
+                    alt="test"
+                    className="w-16 sm:w-20 rounded object-cover"
+                  />
+                  <p className="text-sm sm:text-base font-medium">
+                    {productData.name}
+                  </p>
+                </div>
+                <p className="flex items-center pt-4">{variant.name}</p>
+                <p className="flex items-center pt-4">Rating</p>
+                <div className="flex items-center  pt-4">
+                  <Rating
+                    name="hover-feedback"
+                    value={rating}
+                    precision={1}
+                    size="large"
+                    onChange={(event, newValue) => {
+                      setRating(newValue);
+                    }}
+                    onChangeActive={(event, newHover) => {
+                      setHover(newHover);
+                    }}
+                    emptyIcon={
+                      <StarIcon style={{ opacity: 0.55 }} fontSize="inherit" />
+                    }
+                  />
+                </div>
+                <p className="flex items-center pt-4">Review</p>
+                <p className="flex items-center pt-4 pr-12">
+                  <TextArea
+                    value={review}
+                    onChange={(e) => setReview(e.target.value)}
+                  />
+                </p>
+              </div>
+            );
+          })}
+          <Row className="items-end justify-end pt-7">
+            <Col>
+              <Button size="lg" variant="secondary" onClick={closeModal}>
+                Cancel
+              </Button>
+            </Col>
+            <Col>
+              <Button size="lg" onClick={onSubmitReview}>
+                <FontAwesomeIcon icon={faFloppyDisk} /> Save
+              </Button>
+            </Col>
+          </Row>
+        </div>
+      </Modal>
     </div>
   );
 };

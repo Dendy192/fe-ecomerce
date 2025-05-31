@@ -209,6 +209,7 @@ const Collection = () => {
               id={item.id}
               price={item.price}
               image={item.img}
+              rating={item.avgRating}
             />
           ))}
         </div>

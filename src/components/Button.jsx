@@ -8,7 +8,9 @@ const Button = ({
   outline = false,
   type = "button",
   onClick,
+  disabled = false,
   className,
+
   props,
 }) => {
   // Define base styles
@@ -60,6 +62,7 @@ const Button = ({
       className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${className} `}
       onClick={onClick}
       type={type}
+      disabled={disabled}
       {...props}
     >
       {children}

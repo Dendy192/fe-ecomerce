@@ -10,6 +10,9 @@ import Loading from "../components/Loading";
 import PriceFormatter from "../components/PriceFormatter";
 import useSnap from "../hook/UseSnap";
 import { toast } from "react-toastify";
+import Modal from "../components/Modal";
+import Input from "../components/Input";
+import Button from "../components/Button";
 
 const PlaceOrder = ({ token }) => {
   const { navigate, cartItems, products, getChart, getProduct, getCartAmount } =
@@ -28,13 +31,18 @@ const PlaceOrder = ({ token }) => {
   const [fee, setFee] = useState(0);
   const [discountTotal, setDiscountTotal] = useState(0);
   const [totalPrice, setTotalPrice] = useState(0);
-  const { promoChoose, setPromoChoose } = useState([]);
+  const [promoChoose, setPromoChoose] = useState([]);
   const [selectedOption, setSelectedOption] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   const [courierData, setCourierData] = useState([]);
   const [insurance, setInsurance] = useState(false);
   const [insuranceFee, setInsuranceFee] = useState(0);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [promo, setPromo] = useState([]);
+  const [promoSearch, setPromoSearch] = useState("");
+  const openModal = () => setModalOpen(true);
+  const closeModal = () => setModalOpen(false);
   const groupedOptions = [
     {
       group: "Fruits",
@@ -90,7 +98,42 @@ const PlaceOrder = ({ token }) => {
       Authorization: `Bearer ${localStorage.getItem("sessions")}`,
     },
   };
+  const choosePromo = async (input) => {
+    let result = 0;
+    if (input.promoType == "P") {
+      let promoValue = parseFloat(input.promoValue) / 100;
+      result = parseFloat(subTotal) * promoValue;
+      if (input.promoMaxType == "M") {
+        if (tmp1 >= input.promoMaxOrder) {
+          result = input.promoMaxOrder;
+        }
+      }
+    } else {
+      result = input.promoValue;
+    }
 
+    let finalResult = parseInt(result) + parseInt(discountTotal);
+    setDiscountTotal(finalResult);
+    let promoTmpChoose = structuredClone(promoChoose);
+    console.log(input);
+    promoTmpChoose.push(input);
+    setPromoChoose(promoTmpChoose);
+    closeModal();
+    toast.success(`Success Choose Discount ${input.promoCode}`);
+  };
+  const findPromo = async (input) => {
+    try {
+      let response = await axios.get(
+        url + "/cart/promo/" + promoSearch,
+        header
+      );
+      if (response.data.success) {
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error(error.message);
+    }
+  };
   const getCourier = async () => {
     try {
       let body = {
@@ -103,6 +146,25 @@ const PlaceOrder = ({ token }) => {
       }
     } catch (error) {
       console.error(error);
+    }
+  };
+
+  const getPromo = async () => {
+    try {
+      if (cartData != null) {
+        let tmp = [];
+        cartData.map((item) => {
+          tmp.push(item.productId);
+        });
+        let body = {
+          products: tmp,
+        };
+        let response = await axios.post(url + "/cart/promo", body, header);
+        setPromo(response.data.data);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error(error.message);
     }
   };
 
@@ -132,7 +194,7 @@ const PlaceOrder = ({ token }) => {
         let old = parseInt(subTotal) + parseInt(fee);
         let body = {
           cartId: cartItems.id,
-          promo: promoChoose ? promoChoose : [],
+          promo: promoChoose,
           oldPrice: subTotal,
           finalPrice: totalPrice,
           addressId: addressMain.id,
@@ -140,6 +202,7 @@ const PlaceOrder = ({ token }) => {
           deliveryName: selectedOption.courier_code,
           deliveryService: selectedOption.courier_service_code,
           insurance: insurance,
+          insuranceFee: insuranceFee,
         };
         console.log(body);
         let response = await axios.post(url + "/order", body, header);
@@ -179,14 +242,47 @@ const PlaceOrder = ({ token }) => {
     }
   };
   const totalPriceChange = async () => {
-    let result = parseInt(subTotal) - parseInt(discountTotal) + parseInt(fee);
+    let result =
+      parseInt(subTotal) -
+      parseInt(discountTotal) +
+      parseInt(fee) +
+      parseInt(insuranceFee);
     setTotalPrice(result);
   };
-
+  const removePromo = async (index) => {
+    try {
+      let result = 0;
+      if (index.promoType == "P") {
+        let promoValue = index.promoValue / 100;
+        result = parseFloat(subTotal) * promoValue;
+        if (index.promoMaxType == "M") {
+          if (tmp1 >= index.promoMaxOrder) {
+            result = index.promoMaxOrder;
+          }
+        }
+      } else {
+        result = index.promoValue;
+      }
+      let finalResult = discountTotal - result;
+      setDiscountTotal(finalResult);
+      let indexPromo = promoChoose.findIndex(
+        (data) => data.promoId == index.promoId
+      );
+      if (indexPromo != -1) {
+        promoChoose.splice(indexPromo, 1);
+        toast.error(`Success Remove Discount ${index.promoCode}`);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      closeModal();
+    }
+  };
   const insuranceOnChange = async (e) => {
     setInsurance(e.target.checked);
 
-    let feeInsurance = parseInt(subTotal) * 0.05;
+    let feeInsurance = parseFloat(subTotal) * 0.005;
+    console.log(feeInsurance, "-", subTotal);
     setInsuranceFee(e.target.checked ? feeInsurance : 0);
   };
   // useEffect(() => {
@@ -220,7 +316,9 @@ const PlaceOrder = ({ token }) => {
   useEffect(() => {
     totalPriceChange();
   }, [cartData, subTotal, totalPrice]);
-
+  useEffect(() => {
+    getPromo();
+  }, [cartData]);
   useEffect(() => {
     getSubTotal();
     totalPriceChange();
@@ -228,7 +326,7 @@ const PlaceOrder = ({ token }) => {
 
   useEffect(() => {
     totalPriceChange();
-  }, [fee, discountTotal]);
+  }, [fee, discountTotal, insuranceFee]);
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -277,9 +375,7 @@ const PlaceOrder = ({ token }) => {
       getCourier();
     }
   }, [addressMain]);
-  useEffect(() => {
-    console.log(courierData);
-  }, [courierData]);
+  useEffect(() => {}, [courierData]);
   if (loading) return <Loading />;
   return (
     <>
@@ -479,8 +575,11 @@ const PlaceOrder = ({ token }) => {
                 </label>
               </div> */}
                     {/* Promo Button */}
-                    <button className="bg-yellow-100 text-yellow-600 px-4 py-2 rounded mb-4 w-full">
-                      Makin hemat pakai promo
+                    <button
+                      className="bg-yellow-100 text-yellow-600 px-4 py-2 rounded mb-4 w-full"
+                      onClick={() => openModal()}
+                    >
+                      Save more with discounts
                     </button>
                     {/* Payment Button */}
                     <button
@@ -494,6 +593,79 @@ const PlaceOrder = ({ token }) => {
               </div>
             </div>
           </div>
+          <Modal
+            isOpen={modalOpen}
+            onClose={closeModal}
+            closeOnOutsideClick={false}
+          >
+            <div className="pt-10">
+              <div className="flex gap-2 pb-4">
+                <Input
+                  width="max-w-[700px]"
+                  placeholder="Search Code in here"
+                  value={promoSearch}
+                  onChange={(e) => setPromoSearch(e.target.value)}
+                />
+                <Button variant="secondary">Search</Button>
+              </div>
+              {promo.length === 0 && "No Discounts Available"}
+
+              <div className=" bg-white border border-gray-300 rounded-md shadow-lg max-h-80 overflow-y-auto">
+                {promo.map((promos, index) => {
+                  const isChosen = promoChoose.some(
+                    (p) => p.promoId === promos.promoId
+                  );
+                  return (
+                    <div
+                      key={index}
+                      className={`border-b last:border-b-0 ${
+                        isChosen ? "border-green-600 bg-green-200" : ""
+                      }`}
+                    >
+                      <div
+                        key={promos.promoId}
+                        className="px-4 py-2 cursor-pointer even:bg-gray-100"
+                      >
+                        <div className="flex justify-between">
+                          <div>
+                            <span className="font-medium text-gray-800">
+                              {promos.promoCode} - {promos.promoName}
+                            </span>
+                            <div className="text-sm text-gray-500">
+                              {promos.promoDesc}
+                              {promos.promoType == "F" ? (
+                                <div className=" text-sm text-green-600">
+                                  <PriceFormatter price={promos.promoValue} />
+                                </div>
+                              ) : (
+                                <div className=" text-sm text-green-600">
+                                  {promos.promoValue}%
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex justify-center align-middle items-center text-center">
+                            {isChosen ? (
+                              <Button
+                                variant="danger"
+                                onClick={() => removePromo(promos)}
+                              >
+                                Remove
+                              </Button>
+                            ) : (
+                              <Button onClick={() => choosePromo(promos)}>
+                                Choose
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </Modal>
         </>
       )}
 

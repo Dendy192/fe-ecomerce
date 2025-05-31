@@ -6,8 +6,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 3000,
-    // allowedHosts: [
-    //   ".ngrok-free.app", // Mengizinkan semua domain ngrok
-    // ],
+    allowedHosts: [
+      ".ngrok-free.app", // Mengizinkan semua domain ngrok
+    ],
   },
 });
